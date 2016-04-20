@@ -133,13 +133,15 @@ Some streaming models using finite windowing like relational stream model(ilpubs
 
 \subsection{Streaming architecture, querying -  3-5 pages}
 \subsubsection{System model}
+A distributed computing system consists processes physically separated in space, that do not share a common memory and communicate with each other asynchronously, through passing messages over some communication channels. Each process and communication channel of the system has its  own state. A state of a process depends on the entire history of messages it received and all the computations it has executed. State of a process is characterized by the messages sent along it less messages received by all the  target processes.
+\cite{introsnapshot}
 \paragraph{Streaming data model}
-A \textit{stream} \begin{math}s\end{math} is an infinite series of tuples \begin{math}t\in s\end{math}. A \textit{tuple} \begin{math}t=(\tau,k,p)\end{math} in general case consists of a logical timestamp $\tau$, a key field \(k\) and the payload \(p\).
+We refer to the sequence of messages sent along a channel as \textit{stream}. A \textit{stream} \begin{math}s\end{math} is an infinite series of tuples \begin{math}t\in s\end{math}. A \textit{tuple} \begin{math}t=(\tau,k,p)\end{math} in general case consists of a logical timestamp $\tau$, a key field \(k\) and the payload \(p\).
 
  Tuples in stream are ordered according to their timestamp $\tau\in\mathbb{N}^{+}$ assigned by a monolitically increasing logical clock. The timestamp is set at the moment of creation of the tuple in the stream. \textit{Key} fields in the tuples are not unique, they are used to disrtibute records among working nodes of the system.\cite{pietzuch:intscaleoutandft}
 
 \paragraph{Operator model}
-Tuples are processed by \textit{operators}. An operator $o$ takes $n$ \textit{input streams} $I_o=\{s_1,\dots,s_n \}$, processes their tuples and produces one ore more \textit{output streams}, $O_o=\{o_1, \dots, o_m\}$. Elements of the $I_o[\overline{\tau}]$ vector denotes series of tuples from input streams created before  the corresponding timestamps, namely they have timestamps less than $\overline{\tau}$, where $\overline{\tau}=(\tau_1,\dots,\tau_n)$  are the timestamps of  $I_o=\{s_1,\dots,s_n \}$ input streams.				
+Tuples are processed by \textit{operators}(processes). An operator $o$ takes $n$ \textit{input streams} $I_o=\{s_1,\dots,s_n \}$, processes their tuples and produces one ore more \textit{output streams}, $O_o=\{o_1, \dots, o_m\}$. Elements of the $I_o[\overline{\tau}]$ vector denotes series of tuples from input streams created before  the corresponding timestamps, namely they have timestamps less than $\overline{\tau}$, where $\overline{\tau}=(\tau_1,\dots,\tau_n)$  are the timestamps of  $I_o=\{s_1,\dots,s_n \}$ input streams.				
 An \textit{operator function} $f_o$ defines the processing work operator $o$ has to execute on tuples of input streams:
 \begin{equation}
 f_o : (I_o, \overline{\tau_o},\theta_o,\overline{\sigma_o})\to (O_o, \overline{\tau_o}',\theta_o',\overline{\sigma_o}'),
@@ -171,7 +173,7 @@ The execution graph of a query either can be constructed in a static way from lo
 State management in stream processing is often considered an implementation detail and used only for specific purposes, such as persistence or overload handling. Another approach is to make state of operators externally visible to the stream processing system. This second way of use of operator state yields several advantages regarding to scaling out as well as  to recovery after failures.
 State of a query is composed by state of each operator. \textit{Operator state} can be divided into \textit{processing state}, \textit{buffer state} and \textit{routing state}. Each of these state has it's own important rule in maintaining or increasing efficiency of processing work.
 \paragraph{Intra-query parallelism, scaling out}
-Predicting the workload a stream processing system needs to cope with is not always a simple task, and at runtime of the systems, increasing the throughput of computationally expensive queries could become necessary to avoid emerge of bottlenecks. To scale out dynamically the system needs to be able to identify the operator limiting the processing throughput of the query, which can be challenging in case of using more complex execution graphs. After finding of slowing down nodes a new issue comes up, namely how to reconfigure the execution graph without affecting the correctness of the result. If we use stateful operators the state of the logical operator needs to be partitioned as well.
+Predicting the workload, a stream processing system needs to cope with, is not always a simple task, and at runtime of the systems increasing the throughput of computationally expensive queries could become necessary to avoid emerge of bottlenecks. To scale out dynamically the system needs to be able to identify the operator limiting the processing throughput of the query, which can be challenging in case of using more complex execution graphs. After finding of slowing down nodes a new issue comes up, namely how to reconfigure the execution graph without affecting the correctness of the result. If we use stateful operators the state of the logical operator needs to be partitioned as well.
 \paragraph{Processing state}
 Stateful operators compute their output streams from the tuples of input streams and from the sum of past tuples.
 The term of \textit{processing state} covers the summary of history of these formerly processed tuples  typically maintained by the operator. $\Theta_o$ current processing state of operator $o$ is computed from all past tuples with time $\overline{\sigma_o}_i \leq \overline{\tau}_i \leq \overline{\tau_o}_i : s_i \in I_o $. 
@@ -199,7 +201,7 @@ In case of dynamic partitioning operators should have an explicit  routing state
 \section{Fault tolerance in Streaming}
 
 
-\subsection{Fault tolerance}\label{faultolerance}
+\subsection{Fault tolerance}
 To enable low-latency applications which process Big Data in real time there is a need for streaming computational models, that scale transparently to large clusters possibly composed by hundreds of nodes. At this scale computational systems suffer from two major problems inevitable in large clusters, \textit{strugglers} and \textit{failures}. With increase of size of distributed systems these issues become more normal that exceptional, so streaming applications must provide protocols to overcome them.
 
 Streaming systems can be divided in two main category according to their architectural principles. Microbatch systems, like \textit{Spark Streaming} \cite{discretizedstreams} use a series of stateless, deterministic batch computations on small time intervals, while in \textit{continous operator model} stateful operators recompute their state incrementally after each incoming message. Continous dataflow systems can choose between two possibility of storing backed-up states, they either store that at upstream operators\cite{mapreduceonline}\cite{storm} or use a reliable centralized storage\cite{millwheel}\cite{stratosphere}. 
@@ -213,9 +215,10 @@ Spark Streaming checkpoints periodically RDDs as state of computations, asynchro
 
 \subsubsection{Continous operator model} %% alapvetően aszinkron
 
-
-
-At systems what use upstreams as backup, the state of operator composed by \textit{processing state},\textit{buffer state} and \textit{routing state} can be manipulated through a couple of key procedures described shortly below (and recovery related ones in more detail in section \ref{faultolerance}) in order to efficient scale-out and failure recovery.
+In a distributed stream processing system using \textit{continous operator model}
+\cite{introsnapshot}
+%%can be thrown away..
+%%  At systems what use upstreams as backup, the state of operator composed by \textit{processing state},\textit{buffer state} and \textit{routing state} can be manipulated through a couple of key procedures described shortly below (and recovery related ones in more detail in section \ref{faultolerance}) in order to efficient scale-out and failure recovery.
 
 
 \paragraph{Checkpoint state} 
@@ -267,7 +270,7 @@ for the two use cases.
 
 Flink supports different notions of time giving programmers high flexibility in defining how events should be correlated.
 
-Though developers of Apache consider stream processing engine the only processing mechanism needed to satisfy requirements of any big data application, they acknowledge that there is and will be a need for batch processing. In case of complex queries over static data, for legacy applications or for analyzis applications where no efficient  algorithms  are yet known.
+Though developers of Apache consider stream processing engine the only processing mechanism needed to satisfy requirements of any big data application, they acknowledge that there is and will be a need for batch processing. In case of complex queries over static data, for legacy applications or for analysis applications where no efficient  algorithms  are yet known.
 
 Batch programs at Flink are treated as special cases of streaming, where the stream is finite and order or time of records are not relevant.
 \subsubsection{System architecture} 

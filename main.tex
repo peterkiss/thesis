@@ -1,0 +1,26 @@
+\documentclass[11pt,twoside,a4paper]{article} 
+%%\usepackage[backend=bibtex]{biblatex}
+\usepackage[backend=biber]{biblatex}
+\usepackage{amsfonts,amssymb,amsmath  }
+\usepackage{scrextend, csquotes}
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage{bm}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\addtokomafont{labelinglabel}{\sffamily}
+
+\addbibresource{introduction.bib}
+\begin{document}
+
+\include{cover}
+\tableofcontents
+\newpage
+\include{introduction}
+\newpage
+%\bibliographystyle{ieeetr}
+%\nocite{*}
+\printbibliography
+\end{document}
+
+%

@@ -201,7 +201,7 @@ In case of dynamic partitioning operators should have an explicit  routing state
 \section{Fault tolerance in Streaming}
 
 
-\subsection{Fault tolerance}
+%%\subsection{Fault tolerance}
 To enable low-latency applications which process Big Data in real time there is a need for streaming computational models, that scale transparently to large clusters possibly composed by hundreds of nodes. At this scale computational systems suffer from two major problems inevitable in large clusters, \textit{strugglers} and \textit{failures}. With increase of size of distributed systems these issues become more normal that exceptional, so streaming applications must provide protocols to overcome them.
 
 Streaming systems can be divided in two main category according to their architectural principles. Microbatch systems, like \textit{Spark Streaming} \cite{discretizedstreams} use a series of stateless, deterministic batch computations on small time intervals, while in \textit{continous operator model} stateful operators recompute their state incrementally after each incoming message. Continous dataflow systems can choose between two possibility of storing backed-up states, they either store that at upstream operators\cite{mapreduceonline}\cite{storm} or use a reliable centralized storage\cite{millwheel}\cite{stratosphere}. 
@@ -213,17 +213,33 @@ The idea behind fault tolerance of microbatch systems is that on one hand the st
 Spark Streaming checkpoints periodically RDDs as state of computations, asynchronously replicating the datasets on different worker nodes of the computational system. Then when a node fails the system detects all missing RDD partitions, and recomputes them starting from the last checkpoints. In recovery mechanism the workload of recomputation is possibly distributed over all nodes of the system, which yields a relatively short recovery time.
 
 
-\subsubsection{Continous operator model}
+\subsection{Continous operator model}
 
 In a distributed stream processing system that use \textit{continous operator model},  messages (individual tuples) are sent and received by operators continously and asynchronously. To make such a system resilient to failures requires storing state of its components from which fast recovery is feasible by restoring the operators and streams to their last stored state. To ensure that local states of processes and channels are consistent the system should execute snapshots at same moment, thus defining  \textit{global state} of the system.
- Since operators of DSPSs do not share neither memory nor a global clock, recording global state of the system is not a trivial task.
-$\langle\Theta_o, $ state of an operator $o$
+ Since operators of DSPSs do not share neither memory nor a global clock, recording global state of the system is not a trivial task.The main challanges in snapshotting techniques are to schedule checkpointing of operators, and to define how to deal with messages being transmitted between them. 
 \cite{introsnapshot}
+\subsubsection{Snapshotting}
+In order to provide resilience to task failures DSPSs can periodically capture snapshots of complex state of the execution graph, which later can be used to recover from failures. A global snapshot\cite{abs} of a $G = (T,E)$ execution graph can be defined as $G^{*} = (T^{*},E^{*})$, a set of states of all tasks and edges, $T^{*}$ and $E^{*}$ respectively. $T^{*}$ conatins all operator states $s^{*}_{t} \in T^{*}, \forall t \in T$, and $E^{*}$ is the sum of $e^{*}$ states of intermediate streams, where $e^{*}$ means the sequence of tuples that are logically in transmission on $e$ stream. To have a consistent or correct result of the snapshot, the algorithm needs to satisfy the requirement of \textit{termination} and \textit{feasibility}.
+
+The \textit{termination} property means that the snapshot algorithm eventually finishes in finite time, while \textit{feasibility} stands for meaningfulness of the snapshot, i.e. maintains the casual order, and no information has been lost.
+And of course execution of a snapshot algorithm should transparent to the underlying application logic except for inevitable occassional delaying of some actions.
+
+The first algorithm to record global snapshots asynchronously of DSPSs with FIFO channels was invented by \textit{Chandy} and \textit{Lamport}\ref{distributedsnapshots}, and this technique provides the base as well of \textit{Asynchronous Barrier Snapshotting} algorithm used by Apache Flink (Section \ref{flinkft}).  
+The key object of the Chandy-Lamport algorithm is a a control message called \textit{marker}. After an operator recorded its snapshot in a checkpoint it emits a marker along all its output channels. Since the channels of the model are FIFO, the marker then separates the messages those are included in the snapshot from those which are processed by upstream after creating the checkpoint. Based on that the algorithm defines two rules\ref{introsnapshot}:
+
+\paragraph{Marker sending rule }for process i
+\
+\paragraph{Marker receiving rule}for process j
+
+
+
+
+
 %%can be thrown away..
 %%  At systems what use upstreams as backup, the state of operator composed by \textit{processing state},\textit{buffer state} and \textit{routing state} can be manipulated through a couple of key procedures described shortly below (and recovery related ones in more detail in section \ref{faultolerance}) in order to efficient scale-out and failure recovery.
 
 
-\paragraph{Checkpoint state} 
+\subsubsection{Checkpoint state} 
 The stream processing system can obtain a a representation of $\Theta_o$ processing state and $\beta_o$ buffer state of an operator $o$ through operator functions supposed to be implemented by developer of the operator function $f_o$ in order to form a \textit{checkpoint}. When the $checkpoint\_state(o)$ operation extracts processing state of $o$, it obtains $\overline{\tau_o}$ timestamp as well referring to creation time of most recently processed tuple which affected the checkpointed state of $o$. This timestamp then indicates to the system which tuples of the upstream  operator's buffer state can be removed since they are no longer required from now for recovery.
 
 Checkpointing can be executed asynchronously and or synchronously. %%buffer state  FLinknél???
@@ -234,6 +250,10 @@ distinguishes between two type of checkpointing techniques, \textit{strong} and 
 Similarly Stratosphere uses log based backup with the difference that it  materializes checkpoints describing intermediate task results priodically. During work of the operator the system copies tasks buffer containing the results into a memory cache and writes it only to disk gradually when the cache is full. This technique will be discussed in more detail in section \ref{flinkft}. 
 
 \textit{Routing state} is not required to be included in state checkpoint, because execution topology only changes in case of scale-out or failure recovery.
+
+
+ 
+
 
 \paragraph{Backup state}
 Operator state returned by checkpointing function can be used as backup for the operator and stored either by a reliable storage or by one of it's upstream operators. After the state is backed up it can be used for removing already processed tuples from output buffer of the upstream operators. If an upstream operator has too many downstream operators need to be backed up, that can incure a significant overhead, such can lead to partition of upstream operator. After scale out of upstream, each partitioned operator will be responsible a subset of downstream backup. 
@@ -246,18 +266,15 @@ If an operator fails or when a stream processing system scales out and an operat
 
 After failure systems with centralized log-like back-up scans the checkpoints into memory and replays the necessary computations.(Stratosphere ) 
  
-\paragraph{Partition state}
+\subsubsection{Partition state}
 If workload of an operator $o$ overwhelms its capacities scaling out becomes required. When a stateful operator scales out, it has to distribute its processing state across the new partitioned operators. This basically means  repartitioning  the key space of tuples the operator is responsible for, updating the routing states of $o$'s upstream operators, and finally partitioning upstreams' buffer state to ensure that each tuples of it will be send to the right $o^i$ partitioned operator.
 
 The partitioning of $o$ operator is carried out starting from backed up state stored in upstream operator $u \in upstream(o)$, this way it allows new partitioned operators to recover in case of failure. According to routing state of $u$ the key field supposed to be processed by $o$ is split into $\pi$ new key intervals at first step. Splitting can be done into equal key ranges by a hash function or driven by key distribution of tuples. Next timestamps associated with processing state is copied to each partition , and the buffer state is assigned to the first one, and finally operator state for each $o^i $ partition is stored with $backup_state(o^i)$ ($i = 1..\pi$) in order to provide an initial backup.  
 
 The system afterward needs to update its topology, namely change  \textit{routing states} of upstream operators of the original $o$ operator, through removing old key intervals and substituting with ranges of partitioned operators. The routing states $\rho_{u^j}, u^j \in upstream(o) $ is then stored at query manager. After routing state of an $u$ upstream operator is updated the only thing left is to repartition $\beta_u$ buffer state according to new $\rho_u$ routing to ensure, that in case of recovery elements of buffer will be dispatched to the right $o^i$ partitioned operator.
   
-\subsubsection{Snapshotting}
-In order to provide resilience to task failures another(????) way is to periodically capture snapshots of complex state of the execution graph, which later can be used to recover from failures. A global snapshot\cite{abs} of a $G = (T,E)$ execution graph can be defined as $G^{*} = (T^{*},E^{*})$, a set of states of all tasks and edges, $T^{*}$ and $E^{*}$ respectively. $T^{*}$ conatins all operator states $s^{*}_{t} \in T^{*}, \forall t \in T$, and $E^{*}$ is the sum of $e^{*}$ states of intermediate streams, where $e^{*}$ means the sequence of tuples that are logically in transmission on $e$ stream. To have a consistent or correct result of the snapshot, the algorithm needs to satisfy the requirement of \textit{termination} and \textit{feasibility}.
-The \textit{termination} property means that the snapshot algorithm eventually finishes in finite time, while \textit{feasibility} stands for meaningfulness of the snapshot, i.e. maintains the casual order, and no information has been lost. 
 
-\paragraph{Asynchronous Barrier Snapshotting}\cite{abs}\label{abs} The idea behind ABS is that it is possible to avoid persisting the state of the intermediate streams if the capture of the snapshot is carried out in stages. This stages split the stream and computations into a series of possible executions, where all inputs entered have been fully processed by the SPS. When all input data is processed the set of the operator states reflects the whole execution history , therefore it suffices to be solely used for the snapshot.
+
 
 
 
@@ -275,8 +292,8 @@ Flink supports different notions of time giving programmers high flexibility in 
 Though developers of Apache consider stream processing engine the only processing mechanism needed to satisfy requirements of any big data application, they acknowledge that there is and will be a need for batch processing. In case of complex queries over static data, for legacy applications or for analysis applications where no efficient  algorithms  are yet known.
 
 Batch programs at Flink are treated as special cases of streaming, where the stream is finite and order or time of records are not relevant.
-\subsubsection{System architecture} 
-\paragraph{Flink runtime and APIs}
+\subsection{System architecture} 
+\subsubsection{Flink runtime and APIs}
 Core of Flink is the distributed dataflow engine, which executes dataflow programs. The processing work of Flink is executed by the runtime program composed by a directed graph of stateful operators, among which records are delivered by data streams. The two core API of Flink system are DataSet API, supporting batch tasks on finite streams, and the DataStream API  for processing unbounded data streams. Both of these API create runtime programs executable by the engine.
 On the top of these two APIs a number of domain specific libraries are built or being built, which generate DataSet or DataStream  API programs.In software stack now available are FlinkML, a library for machine learning tasks, Gelly for graph processing and Table API what provides SQL-like operations for Flink users.
 
@@ -286,7 +303,7 @@ Job Manager is responsible for distributed execution of the dataflow program tra
 
 Task managers do the actual processing work. They execute and supervise operators that produce streams and reports their status to Job Manager. It is responsible for maintaining buffer pools, for materializing streams and for network connections between operators.   
 
-\paragraph{Dataflow graph}
+\subsubsection{Dataflow graph}
 A dataflow graph is an directed acyclic graph, that consists of stateful operators and data streams representing data produced and consumed by operators.
 %%job exec graph bullshit
 Dataflow graphs are executed in a data-parallel fashion, operators may be necessary to be parallelized into multiple instances, called \textit{subtasks} consuming \textit{stream partitions}. Partitioning patterns in splitting streams can be point-to-point, broadcast, repartition, fan-out or merge.
@@ -310,15 +327,17 @@ All of these control events assume that the stream partition transmitting them p
 one single stream guarantee  a FIFO order of records, developers of Flink made the decision to release order preserving in case of operators consuming more than one stream in order to avoid back-pressure.
 %% valahova back-pressure + pipelined processingnél is ez
 
-\subsubsection{Fault tolerance}
+\subsubsection{Fault tolerance}\label{flinkft}
 
 Flink offers strict  exactly-once-processing guarantees and deals with failures  via checkpointing and partial re-execution of collapsed computations. The general assumption the system makes connecting to this is that the datasources are persistent and replayable, like files or durable message queues like Kafka. If this is not the case the non persistent data sources still can be incorporated by maintaining a look-ahead log at the source operators.
 
-\paragraph{Checkpointing}\label{flinkft}
+\paragraph{Checkpointing}
 The checkpointing mechanism of Apache Flink is based on the notion of \textit{distributed asynchronous snapshots} in order to achieve exactly-once-processing. The unbounded nature of input in continous stream processing scenarios makes recomputational recovery mechanism cumbersome, which possibly would take months to replay computations in long-running system. 
 To reach finite recovery time Flink regularly take snapshots of the state of the operators along with the current position of input stream. The challenges in this, that in order to execute checkpointing with low latency, the system should avoid halting the execution of the topology. 
 
-\paragraph{ABS}
+\paragraph{Asynchronous Barrier Snapshotting}
+ The idea behind ABS\cite{abs} is that it is possible to avoid persisting the state of the intermediate streams if the capture of the snapshot is carried out in stages. This stages split the stream and computations into a series of possible executions, where all inputs entered have been fully processed by the SPS. When all input data is processed the set of the operator states reflects the whole execution history , therefore it suffices to be solely used for the snapshot.
+
 \textit{Apache Flink} implements ABS (mentioned before in \ref{abs}) by periodically injecting special barrier markers in the input stream. The barriers then are pushed through the whole execution graph without breaking continuous data ingestion.
 
 Global snapshots are incrementally constructed as each task receives the barrier indicating the stages of the executions. To ensure that the algorithm work as expected, the following assumptions must be met:
@@ -338,7 +357,7 @@ Reliability of channels ensures that the barriers injected by source will eventu
 
 
 
-\subsection{Iterative fault tolerance - 5 pages}
+\section{Iterative fault tolerance - 5 pages}
 \subsubsection{Iterative tasks}
 In the field of data mining and machine learning executing data-parallel iterative algorithms on large datasets is getting more and more important.
 \paragraph{Machine learning}

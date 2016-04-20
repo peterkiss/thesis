@@ -213,9 +213,11 @@ The idea behind fault tolerance of microbatch systems is that on one hand the st
 Spark Streaming checkpoints periodically RDDs as state of computations, asynchronously replicating the datasets on different worker nodes of the computational system. Then when a node fails the system detects all missing RDD partitions, and recomputes them starting from the last checkpoints. In recovery mechanism the workload of recomputation is possibly distributed over all nodes of the system, which yields a relatively short recovery time.
 
 
-\subsubsection{Continous operator model} %% alapvetően aszinkron
+\subsubsection{Continous operator model}
 
-In a distributed stream processing system using \textit{continous operator model}
+In a distributed stream processing system that use \textit{continous operator model},  messages (individual tuples) are sent and received by operators continously and asynchronously. To make such a system resilient to failures requires storing state of its components from which fast recovery is feasible by restoring the operators and streams to their last stored state. To ensure that local states of processes and channels are consistent the system should execute snapshots at same moment, thus defining  \textit{global state} of the system.
+ Since operators of DSPSs do not share neither memory nor a global clock, recording global state of the system is not a trivial task.
+$\langle\Theta_o, $ state of an operator $o$
 \cite{introsnapshot}
 %%can be thrown away..
 %%  At systems what use upstreams as backup, the state of operator composed by \textit{processing state},\textit{buffer state} and \textit{routing state} can be manipulated through a couple of key procedures described shortly below (and recovery related ones in more detail in section \ref{faultolerance}) in order to efficient scale-out and failure recovery.
@@ -259,9 +261,9 @@ The \textit{termination} property means that the snapshot algorithm eventually f
 
 
 
-\subsection{Apache Flink - 2-3 pages}
+\section{Apache Flink - 2-3 pages}
 Apache Flink is an open source data processing system built on the philosophy that embraces  data stream processing as the unifying model for real-time analysis, continuous streams and batch processing, both in  programming model and execution engine. 
-According to that philosophy, if the stream processing system is used in combination with durable message queues like Apache Kafka or Amazon Kinesis  
+According to that philosophy, if the stream processing system is used in combination with durable message queues like \textit{Apache Kafka} or \textit{Amazon Kinesis}  
 it allows quasi arbitrary replay of data streams. Stream processing programs make no difference between processing the latest events in real-time , 
 continuously aggregating data periodically in large windows or processing terabytes of historical data, all of these types of computations  simply start their work at 
 different points in the durable stream and maintain different forms of state. Since Flink also provides a highly flexible windowing mechanism, 

@@ -6,8 +6,7 @@
 \section{Introduction - 1 page}
 In the last decade the amount of data being created has increased incredibly.  
 ,,Industrial Revolution of Data''\cite{aobd} is driven by explosion of cheap and numerous data gathering mobile devices, servers continuously 
-logging messages about what they are doing, and by the emerging IoT. And above all the ultimate source of information, the Internet is almost incomprehensible 
-enormous.
+logging messages about what they are doing, and by the emerging IoT. And above all the ultimate source of information, the Internet is almost incomprehensible enormous.
 This revolution profoundly influences the rules of the information business, the traditional informational systems, 
 like relational databases are pushed to their limits and in an increasing number of cases systems collapses under the pressure of Big Data.\cite{marz}
 ...
@@ -78,7 +77,7 @@ This last speed layer uses \textit{streaming}, another concept of data intensive
 
 \begin{figure}[!ht]
   \centering    
-      \includegraphics[width=0.5\textwidth]{figures/lambda-architecture.png}
+      \includegraphics[width=0.9\textwidth]{figures/lambda-architecture.png}
   \caption{Lambda architecture \cite{beatCAP}}
   \label{fig:lambda}
 \end{figure}
@@ -95,7 +94,7 @@ The key distinction data between data they process is about finiteness, or rathe
 Nowadays data scientists like \textit{Jay Kreps} and \textit{Tyler Akidau} started questioning necessity of lambda architecture, stating that well designed streaming engines can do work of batch processing as well.  Jay Kreps came up with so-called \textit {Kappa- architecture}(Figure  ~\ref{fig:kappa}), where the batch phase is carried out by streaming engines too, using the same processing pipeline.
 \begin{figure}[!ht]
   \centering    
-      \includegraphics[width=0.5\textwidth]{figures/kappa-architecture.png}
+      \includegraphics[width=0.9\textwidth]{figures/kappa-architecture.png}
   \caption{Kappa architecture \cite{beatCAP}}
   \label{fig:kappa}
 \end{figure}
@@ -204,7 +203,7 @@ In case of dynamic partitioning operators should have an explicit  routing state
 %%\subsection{Fault tolerance}
 To enable low-latency applications which process Big Data in real time there is a need for streaming computational models, that scale transparently to large clusters possibly composed by hundreds of nodes. At this scale computational systems suffer from two major problems inevitable in large clusters, \textit{strugglers} and \textit{failures}. With increase of size of distributed systems these issues become more normal that exceptional, so streaming applications must provide protocols to overcome them.
 
-Streaming systems can be divided in two main category according to their architectural principles. Microbatch systems, like \textit{Spark Streaming} \cite{discretizedstreams} use a series of stateless, deterministic batch computations on small time intervals, while in \textit{continous operator model} stateful operators recompute their state incrementally after each incoming message. Continous dataflow systems can choose between two possibility of storing backed-up states, they either store that at upstream operators\cite{mapreduceonline}\cite{storm} or use a reliable centralized storage\cite{millwheel}\cite{stratosphere}. 
+Streaming systems can be divided in two main category according to their architectural principles. \textit{Microbatch systems}, like \textit{Spark Streaming} \cite{discretizedstreams} use a series of stateless, deterministic batch computations on small time intervals, while in \textit{continous operator model} stateful operators recompute their state incrementally after each incoming message. Continous dataflow systems can choose between two possibility of storing backed-up states, they either store that at upstream operators\cite{mapreduceonline}\cite{storm} or use a reliable centralized storage\cite{millwheel}\cite{stratosphere}, ancestor of \textit{Apache Flink}. 
 \subsection{Microbatch model}
 
 
@@ -215,32 +214,82 @@ Spark Streaming checkpoints periodically RDDs as state of computations, asynchro
 
 \subsection{Continous operator model}
 
-In a distributed stream processing system that use \textit{continous operator model},  messages (individual tuples) are sent and received by operators continously and asynchronously. To make such a system resilient to failures requires storing state of its components from which fast recovery is feasible by restoring the operators and streams to their last stored state. To ensure that local states of processes and channels are consistent the system should execute snapshots at same moment, thus defining  \textit{global state} of the system.
+In a distributed stream processing system that use \textit{continous operator model},  messages (individual tuples) are sent and received by operators continuously and asynchronously. To make such a system resilient to failures requires storing state of its components from which fast recovery is feasible by restoring the operators and streams to their last stored state. To ensure that local states of processes and channels are consistent the system should execute snapshots at same moment, thus defining  \textit{global state} of the system.
  Since operators of DSPSs do not share neither memory nor a global clock, recording global state of the system is not a trivial task.The main challanges in snapshotting techniques are to schedule checkpointing of operators, and to define how to deal with messages being transmitted between them. 
 \cite{introsnapshot}
 \subsubsection{Snapshotting}
-In order to provide resilience to task failures DSPSs can periodically capture snapshots of complex state of the execution graph, which later can be used to recover from failures. A global snapshot\cite{abs} of a $G = (T,E)$ execution graph can be defined as $G^{*} = (T^{*},E^{*})$, a set of states of all tasks and edges, $T^{*}$ and $E^{*}$ respectively. $T^{*}$ conatins all operator states $s^{*}_{t} \in T^{*}, \forall t \in T$, and $E^{*}$ is the sum of $e^{*}$ states of intermediate streams, where $e^{*}$ means the sequence of tuples that are logically in transmission on $e$ stream. To have a consistent or correct result of the snapshot, the algorithm needs to satisfy the requirement of \textit{termination} and \textit{feasibility}.
+In order to provide resilience to task failures DSPSs can periodically capture snapshots of complex state of the execution graph, which later can be used to recover from failures. A global snapshot\cite{abs} (i.e. \textit{global state}) of a $G = (T,E)$ execution graph can be defined as $G^{*} = (T^{*},E^{*})$, a set of states of all tasks and edges, $T^{*}$ and $E^{*}$ respectively. $T^{*}$ contains all operator states $s^{*}_{t} \in T^{*}, \forall t \in T$, and $E^{*}$ is the sum of $e^{*}$ states of intermediate streams, where $e^{*}$ means the sequence of tuples that are logically in transmission on $e$ stream. To have a consistent or correct result of the snapshot, the algorithm needs to satisfy the requirement of \textit{termination} and \textit{feasibility}.
 
-The \textit{termination} property means that the snapshot algorithm eventually finishes in finite time, while \textit{feasibility} stands for meaningfulness of the snapshot, i.e. maintains the casual order, and no information has been lost.
-And of course execution of a snapshot algorithm should transparent to the underlying application logic except for inevitable occassional delaying of some actions.
+The \textit{termination} property means that the snapshot algorithm eventually finishes in finite time, while \textit{feasibility} stands for meaningfulness of the snapshot, i.e. maintains the casual order ( e.g. if $t_i$ message is sent before $t_j$ on the same channel, it also should be received first by the downstream operator), and no information has been lost. The algorithm is feasible (e.g. consistent) if a specified global state satisfies the two following condition:
+\begin{description}
+\item[C1:]if a message is sent by an operator $t_i$, it should be included either in state of one of the downstream channel $e_{ij}$ , or in state of downstream operator $t_j$ as received
+\item[C2:] if a messages is not recorded as sent by  $t_i$ operator, it should not appear neither in the state of $e_{ij}$, nor in state of $t_j$ 
+\end{description}
 
-The first algorithm to record global snapshots asynchronously of DSPSs with FIFO channels was invented by \textit{Chandy} and \textit{Lamport}\ref{distributedsnapshots}, and this technique provides the base as well of \textit{Asynchronous Barrier Snapshotting} algorithm used by Apache Flink (Section \ref{flinkft}).  
-The key object of the Chandy-Lamport algorithm is a a control message called \textit{marker}. After an operator recorded its snapshot in a checkpoint it emits a marker along all its output channels. Since the channels of the model are FIFO, the marker then separates the messages those are included in the snapshot from those which are processed by upstream after creating the checkpoint. Based on that the algorithm defines two rules\ref{introsnapshot}:
+And of course execution of a snapshot algorithm should transparent to the underlying application logic except for inevitable occasional delaying of some actions.
 
-\paragraph{Marker sending rule }for process i
-\
-\paragraph{Marker receiving rule}for process j
+The first algorithm to record global snapshots asynchronously of DSPSs with FIFO channels was invented by \textit{Chandy} and \textit{Lamport}\cite{distributedsnapshots}, and this technique provides the base as well of \textit{Asynchronous Barrier Snapshotting} algorithm used by Apache Flink (Section \ref{flinkft}).  
+The key object of the Chandy-Lamport algorithm is a a control message called \textit{marker}. After an operator recorded its snapshot in a checkpoint it emits a marker along all its output channels. Since the channels of the model are FIFO, the marker then separates the messages those are included in the snapshot from those which are processed by upstream after creating the checkpoint. Based on that the algorithm defines two rules\cite{introsnapshot}:
 
+\textbf{Marker sending rule} for process $t_i$
+\begin{algorithm}
+ process $t_i$  records its state.\;
+ For each outgoing channel $e_{ij}$, on which a marker has not been sent, $t_i$ sends a marker along $e_{ij}$\
+ before $i$ sends further messages along $e_{ij}$ 
+% \caption{Marker sending rule for process i}
+\end{algorithm}
 
+\textbf{Marker receiving rule}for process $t_j$
+\begin{algorithm}
+On receiving a marker along channel $C$:\;
+\eIf{$j$ has not recorded its state}{
+Record the state of $C$ as empty set\;
+Follow \textbf{Marker sending rule}\;}{
+Record the state of $C$ as the set of messages\
+received along $C$ after $j$'s state was recorded and before $j$ received the marker along $C$ \;
+}
+\end{algorithm}
 
+The snapshot collection is initialized by one of the processes which first execute the \textit{Marker sending rule}. A process $t_j$ records its snapshot when it receives the first marker from any of incoming channels (let it be $e_{ij}$). From that moment no more messages arrived along $e_{ij}$ will be recorded by $t_j$ (that state of channel will stored as an empty set in snapshot of $t_j$). Messages arriving on the other channels will be recorded until the marker arrives on the given edge. Due to FIFO characteristic of the channels no message sent after a marker will be recorded at $t_j$, thus \textbf{C2} condition is satisfied.
+
+When $t_j$ receives a message $m_{ij}$ preceding the marker on $e_{ij}$, if $t_j$ has not taken a snapshot yet, than it includes in its process state, otherwise it stores that included in the state of the channel the message arrived along($e_{ij}$). This satisfies condition \textbf{C1}.
+
+Local snapshots either can be sent to the process initiated the snapshot or can be broadcasted to all processes, thus each nodes will have the entire global state. Interesting fact that the recorded global state may not reflect any of global states occurred factually during the computation, since processes change their state asynchronously before the sent markers arrives at any other process. Nevertheless can be proved that the global state recorded by the algorithm can be passed through to an equivalent execution.\cite{distributedsnapshots}  
 
 
 %%can be thrown away..
 %%  At systems what use upstreams as backup, the state of operator composed by \textit{processing state},\textit{buffer state} and \textit{routing state} can be manipulated through a couple of key procedures described shortly below (and recovery related ones in more detail in section \ref{faultolerance}) in order to efficient scale-out and failure recovery.
+\subsubsection{Recovery strategies}
+In a Distributed Stream Processing System failure of a single node can significantly disrupt or even halt the effective  work of the system, leading to the loss a potentially large amount of valuable data, and can prevent downstream processes from  making progress. Depending on characteristics of computations the system runs or value of data entries, DSPSs have different high-availability requirements, these approaches can be organize into three classes: \textit{gap recovery}, \textit{rollback recovery} and \textit{precise recovery}. 
+In a theoretical failure resilient system (like in Figure ~\ref{fig:recovery-system-model}) processing work is distributed across a set of \textit{nodes} ($N_u$, $N$, $N_d$), each runs a set of \textit{operators} ($U$,$\sigma$,$\Sigma$,$\mu$,$\Join$ in figure). Processes can buffer tuples received and tuples already processed using queues to store input and output. To \textit{primary nodes} that do the effective processing is assigned a \textit{secondary}, backup node ($N_u'$,$N'$, and $N_d'$). Recent high-availability techniques use various combinations of these concepts to reach resilience to failures.
+
+\begin{figure}[!ht]
+  \centering    
+      \includegraphics[width=0.9\textwidth]{figures/recovery-system-model.png}
+  \caption{Part of a theoretical resilient DSPS \cite{highavailibilityalg}}
+  \label{fig:recovery-system-model}
+\end{figure} 
+
+\paragraph{Gap recovery} is the simplest and less costly approach, it is mostly applicable in systems where the query is answers is interested only in the most recent data, like sensor based  environment monitoring.In this approach in case of failure a secondary node takes tasks of the fallen out process, simply drops tuples already transmitted to the task, and starts processing new data arrived from an initial state.
+
+\paragraph{Rollback recovery} In base case rollback recovery aims to reach \textit{at least once} processing guarantee, where each tuple must be processed, but doesn't make significant difference in query result, if some of them are seen by the computation multiple times. Achieving this guarantee requires 
+\begin{description}
+\item[Input preservation] -- the upstream operators store output tuples necessary  for secondary node to rebuild state of primary.
+\item[Output preservation] -- if secondary runs ahead of primary it stores output tuples in its output queue, until all downstreams receive corresponding tuples from primary. 
+\end{description}
+In \textit{passive standby} primaries periodically send their checkpointed state to secondaries, which take primaries place in computation if the original node become unavailable. The state included by the checkpoint contains state of input and output queues as well as operator's internal state. From the moment of failure discovered secondary dispatches contents of the checkpointed output buffer. Then it starts processing from the latest checkpoint received, based on tuples baked-up at upstreams, and asks upstreams to start sending their input.
+In \textit{upstream backup}, upstream nodes serve as backup to their downstream neighbors through logging and storing output tuples until it ascertains, that each downstream processed and forwarded them or their effect.
+\textit{Active standby} uses process pairs as \textit{passive standby}, but it in contrast to passive  version it processess al the input tuples in parallel with the primary  
 
 
-\subsubsection{Checkpoint state} 
+
+% that may result in duplicates of the produced tuples sent to downstream.
+
+
+\subsubsection{Operator-level procedures}
+\paragraph{Checkpoint state} 
 The stream processing system can obtain a a representation of $\Theta_o$ processing state and $\beta_o$ buffer state of an operator $o$ through operator functions supposed to be implemented by developer of the operator function $f_o$ in order to form a \textit{checkpoint}. When the $checkpoint\_state(o)$ operation extracts processing state of $o$, it obtains $\overline{\tau_o}$ timestamp as well referring to creation time of most recently processed tuple which affected the checkpointed state of $o$. This timestamp then indicates to the system which tuples of the upstream  operator's buffer state can be removed since they are no longer required from now for recovery.
+
 
 Checkpointing can be executed asynchronously and or synchronously. %%buffer state  FLinknél???
 Function $checkpoint\_state(o)$ is triggered every \textit{checkpointing interval} $c$ or in case of user defined events. A short interval results in smaller amount of tuples need to be stored and reprocessed to recover and keep up with the query, but might be resource-consuming. In contrast if we use a long interval, it can incur a large amount of unnecessarily reprocessed tuples. 

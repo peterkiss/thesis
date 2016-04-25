@@ -279,8 +279,8 @@ In a theoretical failure resilient system (like in Figure ~\ref{fig:recovery-sys
 \end{description}
 In \textit{passive standby} primaries periodically send their checkpointed state to secondaries, which take primaries place in computation if the original node become unavailable. The state included by the checkpoint contains state of input and output queues as well as operator's internal state. From the moment of failure discovered secondary dispatches contents of the checkpointed output buffer. Then it starts processing from the latest checkpoint received, based on tuples baked-up at upstreams, and asks upstreams to start sending their input.
 In \textit{upstream backup}, upstream nodes serve as backup to their downstream neighbors through logging and storing output tuples until it ascertains, that each downstream processed and forwarded them or their effect.
-\textit{Active standby} uses process pairs as \textit{passive standby}, but it in contrast to passive  version it processess al the input tuples in parallel with the primary  
-
+\textit{Active standby} uses process pairs as \textit{passive standby}, but in contrast to passive  version secondary processes all input tuples in parallel with the primary. The secondary however does not send any output tuples to downstream instead it stores them in its output queue. 
+\paragraph{Precise recovery} means that all input tuples will be processed \textit{exactly once}. All above-mentioned techniques provide \textit{rollback recovery guarantees} can achieve precise recovery by eliminating duplicate tuples. To provide exactly once semantics in standby architectures failover nodes first ask downstreams to identify last tuples they received, and they send only those that was not delivered yet.
 
 
 % that may result in duplicates of the produced tuples sent to downstream.

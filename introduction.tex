@@ -3,15 +3,21 @@
 %\maketitle
 
 
-\section{Introduction - 1 page}
+\section{Abstract}
 In the last decade the amount of data being created has increased incredibly.  
 ,,Industrial Revolution of Data''\cite{aobd} is driven by explosion of cheap and numerous data gathering mobile devices, servers continuously 
 logging messages about what they are doing, and by the emerging IoT. And above all the ultimate source of information, the Internet is almost incomprehensible enormous.
 This revolution profoundly influences the rules of the information business, the traditional informational systems, 
 like relational databases are pushed to their limits and in an increasing number of cases systems collapses under the pressure of Big Data.\cite{marz}
-...
-As Big Data infrastructures became widely used, users of ,,Big Data'' then started expecting fresh, low latency results, above processing large volumes of data. 
-\section{Big Data- 3 pages}
+As Big Data infrastructures became widely used, users of ,,Big Data'' then started expecting fresh, low latency results, above processing large volumes of data. In response to this demands the new breed of distributed applications has emerged, the  class of \textit{Distributed  Stream  Processing Systems}(DSPSs).
+
+As distributed systems in general DSPSs must comply with a number of base requirements, they have to ensure high availability, robustness against failures, and have to provide correct results.  
+This paper is dedicated to examining how DSPSs can achieve resilience against failures at iterative computations, and how it influences efficiency of the computations in machine learning problems.
+First part of this paper is meant to describe the context of iterative fault tolerance, from the emerge of \textit{Big Data}(Section ~\ref{bigdata}), through architectural principles of distributed stream based applications (Section ~\ref{streaming}), to an overview of recovery techniques in already implemented systems (Section ~\ref{ft}). 
+
+The experiments described in the second part of the paper are executed using \textit{Apache Flink}(Section ~\ref{flink}) on the implementation of \textit{linear regression} (Section ~\ref{linearregression}). Some  Machine Learning problems as well as linear regression, have the characteristic that they are able to reach convergence from only a subset of input data.  Another experiment aims to discover the impact of recovery using exactly once processing guarantees.   
+     
+\section{Big Data}\label{bigdata}
 The appellation ,,Big Data'' is today one of the most hyped buzzword in information technology. The phenomenon behind the name can be described either 
 as data sets whose sizes  exceed the capabilities of traditional management techniques, or data moving too fast to keep up with it in a scaleable and 
 conststent manner. In 2001 Doug Laney defined challanges posed by databoom as being three dimensional\cite{3v}. The three main aspect of Big Data in Laney's summary was:
@@ -83,8 +89,8 @@ This last speed layer uses \textit{streaming}, another concept of data intensive
 \end{figure}
 %% ábra http://radar.oreilly.com/2014/07/questioning-the-lambda-architecture.html
  
-\section{Streaming -SUM 10-12 pages } 
-\subsection{Streaming in general - 1 page}
+\section{Streaming concepts } \label{streaming}
+
 Streaming --if we define it according to type of data-- is a processing technique, that is designed with infinite data sets in mind.\cite{101}. The colloquial use of term Streaming covers two different concepts as well as this definition, micro-batch processing and true streaming.
 The key distinction data between data they process is about finiteness, or rather how we regard it.
 \begin{description}
@@ -197,7 +203,7 @@ An operator $o$ of the query graph may correspond to multiple partitioned $o^1,\
 which maps $k \in [k_i,k_j]$ key of a tuple to $d^i$ partitioned downstream operator. 
 In case of dynamic partitioning operators should have an explicit  routing state which can be used for failure recovery as well.
 
-\section{Fault tolerance in Streaming}
+\section{Fault tolerance in Streaming}\label{ft}
 
 
 %%\subsection{Fault tolerance}
@@ -305,15 +311,18 @@ Similarly Stratosphere uses log based backup with the difference that it  materi
 
 
 \paragraph{Backup state}
-Operator state returned by checkpointing function can be used as backup for the operator and stored either by a reliable storage or by one of it's upstream operators. After the state is backed up it can be used for removing already processed tuples from output buffer of the upstream operators. If an upstream operator has too many downstream operators need to be backed up, that can incure a significant overhead, such can lead to partition of upstream operator. After scale out of upstream, each partitioned operator will be responsible a subset of downstream backup. 
+Operator state returned by checkpointing function can be used as backup for the operator and stored either by a secondary node, a reliable storage or by one of it's upstream operators. After the state is backed up it can be used for removing already processed tuples from output buffer of the upstream operators. 
+Determining the set of tuples needed for replaying processing is not an obvious task, DSPSs can use so-called \textit{low} and \textit{high watermarks}\cite{highavailibilityalg} indicating  respectively the oldest and most the recent input tuples affected computing a given output tuple.  
+
+
+In upstream recovery approaches if an upstream operator has too many downstream operators need to be backed up, that can incur a significant overhead, such can lead to partition of upstream operator. After scale out of upstream, each partitioned operator will be responsible a subset of downstream backup. 
 
 
 \paragraph{Restore state}
-If an operator fails or when a stream processing system scales out and an operators is redistributed backed up operator needs to be restored. Backed up state of an $o$ operator should reside in an $u \in upstream(o)$ upstream operator or in an external storage.  The $restorestate(o,\Theta,\overline{\tau},\beta,\rho)$ function initializes the new operator, sets the routing state and restores output buffer state.
+If an operator fails or when a stream processing system scales out and an operators is redistributed backed up operator needs to be restored. Backed up state of an $o$ operator should reside in an $u \in upstream(o)$ upstream operator, at a newly designed backup node or in an external storage.  The $restorestate(o,\Theta,\overline{\tau},\beta,\rho)$ function initializes the new operator, sets the routing state and restores output buffer state.
 
  After the state was restored based on the reloaded checkpointed state, the system makes restored operator $o$ to replay processing tuples arrived since latest checkpointing. $replay\_buffer_state(u,o)$ function sends tuples of upstream $u$'s output buffer after each other to bring operator $o$'s processing state up-to-date. Before operator  $o$ restarts sending tuples to its downstream operator it has to reset the logical clock to $\tau$ of the restored checkpoint to enable downstream operators to detect and discard duplicate tuples.
-
-After failure systems with centralized log-like back-up scans the checkpoints into memory and replays the necessary computations.(Stratosphere ) 
+After failure systems with centralized log-like back-up scans the checkpoints into memory and replays the necessary computations. 
  
 \subsubsection{Partition state}
 If workload of an operator $o$ overwhelms its capacities scaling out becomes required. When a stateful operator scales out, it has to distribute its processing state across the new partitioned operators. This basically means  repartitioning  the key space of tuples the operator is responsible for, updating the routing states of $o$'s upstream operators, and finally partitioning upstreams' buffer state to ensure that each tuples of it will be send to the right $o^i$ partitioned operator.
@@ -327,7 +336,7 @@ The system afterward needs to update its topology, namely change  \textit{routin
 
 
 
-\section{Apache Flink - 2-3 pages}
+\section{Apache Flink}\label{flink}
 Apache Flink is an open source data processing system built on the philosophy that embraces  data stream processing as the unifying model for real-time analysis, continuous streams and batch processing, both in  programming model and execution engine. 
 According to that philosophy, if the stream processing system is used in combination with durable message queues like \textit{Apache Kafka} or \textit{Amazon Kinesis}  
 it allows quasi arbitrary replay of data streams. Stream processing programs make no difference between processing the latest events in real-time , 
@@ -431,7 +440,7 @@ Many of the algorithms used in context of machine learning are of iterative or r
 
 %%\cite{allroadsleadtorome}
 
-\subsubsection{Linear regression}
+\subsubsection{Linear regression} \label{linearregression}
 Linear regression aims, simply stated, to fit a line to a set of points. Using the line equation $y=mx+b$, we want to find the best pair of $m$ slope and $b$ value describing intersection point of the line and the y-axis. The most simple way  to calculate the most fitting line is to define an error function, what measures how good the is the line, e.g how well the given line fits to our data.
 \begin{equation}
 Error_{m,b}= \dfrac{1}{N} \sum_{i=1}^{N}(y_i-(mx_i+b))^{2}

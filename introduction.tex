@@ -136,7 +136,7 @@ Nevertheless moving data to jobs raises reliability problems, namely  how to dea
 Some streaming models using finite windowing like relational stream model(ilpubs.stanford.edu:8090/549/1/2002-41.pdf) uses operators with small amount of state, and current state depends on only the last couple of tuples. The more recent streaming data flow graph models provide users a way to implement incremental processing of large datasets permitting them to use so-called \textit{black box operators}, which can maintain arbitrary state potentially depending on the entire history of the stream. \cite{pietzuch:intscaleoutandft}  
 
 
-\subsection{Streaming architecture, querying -  3-5 pages}
+\subsection{Streaming architecture, querying }
 \subsubsection{System model}
 A distributed computing system consists processes physically separated in space, that do not share a common memory and communicate with each other asynchronously, through passing messages over some communication channels. Each process and communication channel of the system has its  own state. A state of a process depends on the entire history of messages it received and all the computations it has executed. State of a process is characterized by the messages sent along it less messages received by all the  target processes.
 \cite{introsnapshot}
@@ -415,7 +415,7 @@ Reliability of channels ensures that the barriers injected by source will eventu
 
 
 
-\section{Iterative fault tolerance - 5 pages}
+\section{Iterative fault tolerance }
 \subsubsection{Iterative tasks}
 In the field of data mining and machine learning executing data-parallel iterative algorithms on large datasets is getting more and more important.
 \paragraph{Machine learning}
@@ -566,10 +566,59 @@ Again, to prove correctness of the algorithms we need to examine \textit{termina
 \item[Feasibility] may be proved in two steps. First local snapshots included in the global snapshot only contains state of task taken before any post-shot events received from regular upstreams. And second the downstream backup log included in the snapshot contains all records received on back-edges after the snapshot but before receiving back the barrier from back-edge.
 \end{description} 
 \cite{abs}
-\subsection{Recovery}
-TODO
-\subsection{Exactly once}
-TODO
+%%\subsection{Recovery}
+%%TODO
+%%\subsection{Exactly once}
+%%TODO
 
 \section{Performance}
+In stream processing systems those essential aim is to answer queries with latency as low as possible a very important aspect is to measure the time overhead caused by  additional processes, that are necessary to carry out snapshotting. To evaluate this overhead I developed an implementation of linear regression using gradient descent
+algorithm.
+\subsection{Linear regression with Flink Streaming}
+Linear regression is a method aiming to find a line best fitting to a given set of points. The implemented algorithm uses an iterative approach, where in each iteration step the result is a line a bit closer to the ideal one than in the previous iteration. To find a line with a smaller error in each step a well usable method is the gradient descent algorithm what I use to alter parameters until a given convergence criteria is met.(Algorithms in more detail in Section \ref{linearregression})
+The set used to test the convergence of the algoritms consists of 21 points :
+ 		$P ={	(0.5, 1.0),( 1.0, 2.0 ),
+			( 2.0, 4.0 )( 3.0, 6.0 ),
+			( 4.0, 8.0 )(5.0, 10.0 ),
+			( 6.0, 12.0 )( 7.0, 14.0 ),
+			( 8.0, 16.0 )(9.0, 18.0 ),
+			( 10.0, 20.0 )( -0.08, -0.16 ),
+			( 0.13, 0.26 )( -1.17, -2.35 ),
+			( 1.72, 3.45 )( 1.70, 3.41 ),
+			( 1.20, 2.41 )( -0.59, -1.18 ),
+			( 0.28, 0.57 )( 1.65, 3.30 ),
+			( -0.55, -1.08 )}$
+The target line equation is $y=2x+0$.
 
+The algorithm first read the iterates over the same point set until convergence. 
+\begin{lstlisting}
+ val iteration = data.iterate { data =>
+      
+      // compute a single step using every sample
+      val updated = data.flatMap(new SubUpdate) /
+        .timeWindowAll(Time.seconds(1))
+        // sum up all the steps in window
+        .reduce(new UpdateAccumulator) 
+        // average the steps and update all parameters
+        .map(new Update)
+        .broadcast
+
+      val connected = data.connect(updated)
+        .map(x => x, x => Right(x))
+        .split(new IterationSelector)
+      (connected.select("iterate"), connected.select("output"))
+    }
+\end{lstlisting}
+As a data entered in the computational pipeline the algorithm maps each point to a displacement to apply on parameters of the line. The displacement is defined by the $SubUbdate$ function, which computes the gradient of the point:
+\begin{lstlisting}
+val delta_0 = - 0.1 * (data.y - (parameter.theta0 + (parameter.theta1 * data.x)) )
+val delta_1 = - 0.1 * data.x * (data.y- ( (parameter.theta1 * data.x) + parameter.theta0 ) )
+val new_parameter = new Params(delta_0, delta_1)
+\end{lstlisting}
+The displacement vectors issued by $SubUpdate$ are collected together and summerized in every seconds, than the sum is applied to parameters of the line. The new line than must be broadcasted between all nodes.
+
+At the end of the iteration step the Flink API enable the algorithm to select the \textit{cooled down parts} and continue the computation only on \textit{hot parts} of the input set, but in this case we need all the data to met the convergence criteria, and we send back all the records in $IterationSelector$.    
+
+
+ 
+      

@@ -223,7 +223,7 @@ Spark Streaming checkpoints periodically RDDs as state of computations, asynchro
 In a distributed stream processing system that use \textit{continous operator model},  messages (individual tuples) are sent and received by operators continuously and asynchronously. To make such a system resilient to failures requires storing state of its components from which fast recovery is feasible by restoring the operators and streams to their last stored state. To ensure that local states of processes and channels are consistent the system should execute snapshots at same moment, thus defining  \textit{global state} of the system.
  Since operators of DSPSs do not share neither memory nor a global clock, recording global state of the system is not a trivial task.The main challanges in snapshotting techniques are to schedule checkpointing of operators, and to define how to deal with messages being transmitted between them. 
 \cite{introsnapshot}
-\subsubsection{Snapshotting}
+\subsubsection{Snapshotting}\label{snapshotting}
 In order to provide resilience to task failures DSPSs can periodically capture snapshots of complex state of the execution graph, which later can be used to recover from failures. A global snapshot\cite{abs} (i.e. \textit{global state}) of a $G = (T,E)$ execution graph can be defined as $G^{*} = (T^{*},E^{*})$, a set of states of all tasks and edges, $T^{*}$ and $E^{*}$ respectively. $T^{*}$ contains all operator states $s^{*}_{t} \in T^{*}, \forall t \in T$, and $E^{*}$ is the sum of $e^{*}$ states of intermediate streams, where $e^{*}$ means the sequence of tuples that are logically in transmission on $e$ stream. To have a consistent or correct result of the snapshot, the algorithm needs to satisfy the requirement of \textit{termination} and \textit{feasibility}.
 
 The \textit{termination} property means that the snapshot algorithm eventually finishes in finite time, while \textit{feasibility} stands for meaningfulness of the snapshot, i.e. maintains the casual order ( e.g. if $t_i$ message is sent before $t_j$ on the same channel, it also should be received first by the downstream operator), and no information has been lost. The algorithm is feasible (e.g. consistent) if a specified global state satisfies the two following condition:
@@ -449,8 +449,7 @@ Lines fit data better will result a lower value, so what we have to do is to min
 \begin{figure}[!ht]
   \centering    
       \includegraphics[width=0.5\textwidth]{figures/gradient_descent_error_surface.png}
-  \caption{A picture of the same gull
-           looking the other way!}
+  \caption{Error of paramater-pairs\cite{gradientdescent}}
   \label{fig:gradient_descent_error_surface}
 \end{figure}
 
@@ -470,22 +469,18 @@ Using the partial derivative functions then we can initialize $b$ and $m$ variab
 \subsubsection{Iterative stream processing}
 Typically data-parallel processing frameworks relies on  submitting a new job for each iteration, on adding new additional nodes to the already running acyclic dataflow graph, or adding feedback edges. 
 \subsubsection{iterative fault tolerance}
-Implementing fault tolerance in distributed data analysis systems is a complex problem. Optimal solutions\cite{allroadleadtorome} among others depend on size of cluster, on hardware-characteristics, on duration of analyzing application or on duration of execution stages. The better solution will be different  as well if the failure happens in the first minute of the computation or if if the system crashes after a week of work.
+Implementing fault tolerance in distributed data analysis systems is a complex problem. Optimal solutions\cite{allroadsleadtorome} among others depend on size of cluster, on hardware-characteristics, on duration of analyzing application or on duration of execution stages. The better solution will be different  as well if the failure happens in the first minute of the computation or if if the system crashes after a week of work.
 Most solutions for fault tolerance introduce an overhead comparing to failure-free operation, as well as recovery procedures after a failure, all of these depends on parameters like the aforementioned ones.
 
-Iterative recovery mechanism can be classified based according to their level of pessimism in three categories\cite{allroadleadtorome}: \textit{Operator level pessimistic recovery},\textit{Iteration-level pessimistic recovery}, and \textit{optimistic recovery}, which is mostly applicable for ML-tasks. 
+Iterative recovery mechanism can be classified based according to their level of pessimism in three categories\cite{allroadsleadtorome}: \textit{Operator level pessimistic recovery},\textit{Iteration-level pessimistic recovery}, and \textit{optimistic recovery}, which is mostly applicable for ML-tasks. 
 
 \paragraph{Operator-level recovery}, implemented for instance in MapReduce\cite{mapreduce}, backs-up the result of each individual stage of execution. Backing-up is done by write the whole result set either on local disk (at Map) or in distributed file system (Reduce). These writes incur a very high overhead for rapid recovery. For iterative tasks the amount of work in an iteration step is usually  much lower than in a typical MapReduce-job, therefore using this type of recovery is a real overkill.
 
 \paragraph{Iteration level recovery} fits better to iterative tasks. Though the workload of an iteration is typically smaller than an ordinary MapReduce job, execution time across all iterations  may still be significant. Some graph-processing systems\cite{distgraphlab}\cite{pregel} therefore checkpoints the result of an iteration as whole. In case of failure all participating operator needs to revert to the last checkpointed state. By skipping checkpointing in a number of iterations, iteration-level recovery may provide the possibility to balance between higher overhead and better performance.
 
-\paragraph{Optimistic recovery for Machine Learning}\cite{allroadleadtorome} brings a different approach in fault tolerance by omit any kind of checkpointing. The idea is, that many Machine Learning algorithms does not need \textit{exactly once} semantics, thus if a number of tuples doesn't appear in the computation result the job will still converge.  This technique instead of reverting to a former state in case of failure applies a \textit{compensate} function on participating machines. The role of this function is to set the state of the entire application to a state from which the system can converge.
+\paragraph{Optimistic recovery for Machine Learning}\cite{allroadsleadtorome} brings a different approach in fault tolerance by omit any kind of checkpointing. The idea is, that many Machine Learning algorithms does not need \textit{exactly once} semantics, thus if a number of tuples doesn't appear in the computation result the job will still converge.  This technique instead of reverting to a former state in case of failure applies a \textit{compensate} function on participating machines. The role of this function is to set the state of the entire application to a state from which the system can converge.
 
-
-
-
-
-\paragraph{Naiad - timely dataflow}
+\paragraph{Naiad - timely dataflow : a simple but costly solution}
 Microsoft's  distributed stream processing system, Naiad\cite{naiad} offers ability to perform iterative and incremental computations beyond providing high throughput and low latency.
 The underlying concept of \textit{timely dataflows} implemented by Naiad system uses a new model of logical timestamps, which reflects structure in the graph topology such as loops, and makes the model suitable  for tracking progress in iterative algorithms. 
 
@@ -515,4 +510,66 @@ Designers of Naiad have chosen higher performance in the common case that there 
 
 \section{Iterative Fault-tolerance in Flink}
 \subsection{Iterative dataflows in Flink}
-Iterations and incremental processing are crucial for machine learning applications as well as for implementation of different graph processing algorithms. Iterations in Flink are implemented using \textit{iterative steps}, special operators that themselves can contain an execution graph.
+Iterations and incremental processing are crucial for machine learning applications as well as for implementation of different graph processing algorithms. Iterations in Flink are implemented using \textit{iterative steps}, special operators that themselves can contain an execution graph. Flink makes difference on API level between two variant of iteration operator: simple textit{Iterate} and textit{Delta Iterate}.
+
+The \textbf{iterate operator} implements a simple form of iterations, the step function consumes the entire result set of its upstream operator or the previous iteration then executes the iteration step and produces a the new partial solution. Step function is executed multiple times until a termination condition is met, that can be either a given maximum number of iterations or a \textit{convergence criteria}, which should be satisfied by a textit{custom aggregator}.
+\begin{figure}[!ht]
+  \centering    
+      \includegraphics[width=0.5\textwidth]{figures/iterations_iterate_operator.png}
+  \caption{Simple iterate operator in Flink\cite{flink_doc_iteration}}
+  \label{fig:iterations_iterate_operator}
+\end{figure}
+
+\textbf{Delta iterate operator} covers the case of incremental computation. Incremental iterations selectively modify some elements of their solution set evolving the solution rather than fully recompute that. If this type of methods are applicable they lead to more efficient solutions, it splits the solution set into \textit{cold parts} and \textit{hot parts} and involve only hot parts into the next iteration steps. The majority of the solution set in many cases cools down quickly and thus fastens up the global execution significantly.
+\begin{figure}[!ht]
+  \centering    
+      \includegraphics[width=0.5\textwidth]{figures/iterations_delta_iterate_operator.png}
+  \caption{Delta iterate operator in Flink\cite{flink_doc_iteration}}
+  \label{fig:iterations_iterate_operator}
+\end{figure}
+In parallel setups the step functions of multiple task instances are evaluated in parallel on different partitions of iteration state. One such parallel evaluation of on all the task instances forms a textit{superstep}, which is the granularity of synchronization, therefore all iteration task have need to be complete before initialization of the next superstep. Termination criteria is also evaluated at the barriers between supersteps.	
+\cite{flink_doc_iteration}
+
+\subsection{Asynchronous Barrier Snapshotting for cyclic dataflows}
+Apache Flink uses Asynchronous Barrier Snapshotting what is based on the principle, that it is feasible to do snapshots without persisting channels' state, if we divide the execution into stages. 
+It is possible to divide data streams into stages by injecting textit{barrier markers} a kind of control messages periodically, that are pushed throughout the whole execution graph to the sinks. Global snapshot of the systems are taken incrementally building on stages indicated by barrier markers. There are a couple of assumptions need to be met for ASB algorithms:
+\begin{itemize}
+\item Network channels need to be quasi-reliable, they have tor keep a FIFO delivery order, and can be blocked and unblocked. When a channel is blocked it has to be able to buffer all messages until it gets unblocked.
+\item Tasks need to be enabled to order the channels to block, unblock and forward messages. They also has to be able to broadcast messages.
+\end{itemize}
+To execute a global snapshot a central coordinator injects the barrier to all the sources of execution graphs. When the source recieves the marker it takes  a snapshot of its current state, then forwards the barrier on all its downstreams.  When a non-source task receives a barrier on one of the input streams it blocks the stream and wait until the barrier is delivered on all the upstreams. When the task has received the barrier from all the upstream channel it executes the snapshot of its current state, broadcasts the barrier on all its downstream channels, and finally unblocks upstream channel and continues the computations.
+\begin{figure}[!ht]
+  \centering    
+      \includegraphics[width=0.9\textwidth]{figures/abs_acyclic.png}
+  \caption{Asynchronous Barrier Snapshotting in acyclic topology\cite{abs}}
+  \label{fig:abs_acyclic}
+\end{figure}
+A snapshotting algorithms must guarantee \textit{termination} and \textit{feasibility}.(See subsection \ref{snapshotting})
+\begin{description}
+\item[Termination] is guaranteed by the DAG topology of acylic computation graph and reliability of the channels. Reliability ensures the if a barrier has been sent it will be eventually received as long as the receiver task is alive. The DAG topology furthermore guarantees that all tasks will receive the barrier on all the input channels.
+\item[Feasibility] of the algorithms can be proved by showing, that a global snapshot contains only history of records that are processed up to the last stage. This is ensured by FIFO delivery and blocking of input channels ensuring that no post-shot record will be reflected in the state. 
+\end{description}
+\cite{abs}
+In the presence of cycles in the execution graph ABS algorithm presented above will violate the requirement of \textit{termination}, since a task in a circle would wait indefinitely to receive the barriers on all of the input channels, resulting in deadlock. Moreover the records that are in transit within cycles would not be included in the snapshot contradicting the property of \textit{feasibility}. This second issue leads to the need to consistently include records in the circle in the snapshot to reach feasibility as well as restore them at recovery.
+To address the problem of deadlocks we need to identify the set textit{back-edges} $L$  in the execution graph by static analysis. $L$ includes edges of the graph which has been already visited during \textit{depth-first search}. Without the $l_{bi} \in L$ back-edges $G(T, E\\L)$ execution graph is a DAG. that contains all tasks of in topology, on this part the former algorithm will work invariably. To deal with problem of records in transit there is a need to apply downstream backup logging the records received on back-edges during the snapshot, i.e. from the moment it forwards the barrier until it receives back on the back-edge.      
+In the modified ABS algorithm  tasks with back-edge input creates a local copy of their state once they received the barrier from all their upstreams $(e \notin L)$ channels, then it broadcasts the barrier on all the downstreams, including the channels that are part of a circle. From that they log all records delivered from the back-edges until receives back the stage barrier too from them, incuding this way all pre-shot records in the current snapshot.  
+\begin{figure}[!ht]
+  \centering    
+      \includegraphics[width=0.9\textwidth]{figures/abs_cyclic.png}
+  \caption{Asynchronous Barrier Snapshotting in cyclic topology\cite{abs}}
+  \label{fig:abs_cyclic}
+\end{figure}
+Again, to prove correctness of the algorithms we need to examine \textit{termination} and \textit{feasibility}:
+\begin{description}
+
+\item[Termination] of this modified is guaranteed. The problem of potential deadlocks is solved by forwarding barrier as soon as all the regular (non back-edge) channels delivered it. As the modified algorithm works as the unmodified one regarding the DAG partial graph (not considering additional logging), all tasks will eventually receive the barrier.
+\item[Feasibility] may be proved in two steps. First local snapshots included in the global snapshot only contains state of task taken before any post-shot events received from regular upstreams. And second the downstream backup log included in the snapshot contains all records received on back-edges after the snapshot but before receiving back the barrier from back-edge.
+\end{description} 
+\cite{abs}
+\subsection{Recovery}
+TODO
+\subsection{Exactly once}
+TODO
+
+\section{Performance}
+

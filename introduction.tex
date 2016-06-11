@@ -577,17 +577,19 @@ algorithm.
 \subsection{Linear regression with Flink Streaming}
 Linear regression is a method aiming to find a line best fitting to a given set of points. The implemented algorithm uses an iterative approach, where in each iteration step the result is a line a bit closer to the ideal one than in the previous iteration. To find a line with a smaller error in each step a well usable method is the gradient descent algorithm what I use to alter parameters until a given convergence criteria is met.(Algorithms in more detail in Section \ref{linearregression})
 The set used to test the convergence of the algoritms consists of 21 points :
- 		$P ={	(0.5, 1.0),( 1.0, 2.0 ),
-			( 2.0, 4.0 )( 3.0, 6.0 ),
-			( 4.0, 8.0 )(5.0, 10.0 ),
-			( 6.0, 12.0 )( 7.0, 14.0 ),
-			( 8.0, 16.0 )(9.0, 18.0 ),
-			( 10.0, 20.0 )( -0.08, -0.16 ),
-			( 0.13, 0.26 )( -1.17, -2.35 ),
-			( 1.72, 3.45 )( 1.70, 3.41 ),
-			( 1.20, 2.41 )( -0.59, -1.18 ),
-			( 0.28, 0.57 )( 1.65, 3.30 ),
-			( -0.55, -1.08 )}$
+\begin{lstlisting}
+ 	P ={(0.5, 1.0 ),	( 1.0, 2.0 ),
+		( 2.0, 4.0 ),	( 3.0, 6.0 ),
+		( 4.0, 8.0 ),	(5.0, 10.0 ),
+		( 6.0, 12.0 ),	( 7.0, 14.0 ),
+		( 8.0, 16.0 ),	(9.0, 18.0 ),
+		( 10.0, 20.0 ),	( -0.08, -0.16 ),
+		( 0.13, 0.26 ),	( -1.17, -2.35 ),
+		( 1.72, 3.45 ),	( 1.70, 3.41 ),
+		( 1.20, 2.41 ),	( -0.59, -1.18 ),
+		( 0.28, 0.57 ),	( 1.65, 3.30 ),
+		( -0.55, -1.08 )}
+\end{lstlisting}
 The target line equation is $y=2x+0$.
 
 The algorithm first read the iterates over the same point set until convergence. 
@@ -611,8 +613,10 @@ The algorithm first read the iterates over the same point set until convergence.
 \end{lstlisting}
 As a data entered in the computational pipeline the algorithm maps each point to a displacement to apply on parameters of the line. The displacement is defined by the $SubUbdate$ function, which computes the gradient of the point:
 \begin{lstlisting}
-val delta_0 = - 0.1 * (data.y - (parameter.theta0 + (parameter.theta1 * data.x)) )
-val delta_1 = - 0.1 * data.x * (data.y- ( (parameter.theta1 * data.x) + parameter.theta0 ) )
+val delta_0 = - 0.1 * (data.y - (parameter.theta0 
+		+ (parameter.theta1 * data.x)) )
+val delta_1 = - 0.1 * data.x * (data.y- ( (parameter.theta1 * data.x) 
+		+ parameter.theta0 ) )
 val new_parameter = new Params(delta_0, delta_1)
 \end{lstlisting}
 The displacement vectors issued by $SubUpdate$ are collected together and summerized in every seconds, than the sum is applied to parameters of the line. The new line than must be broadcasted between all nodes.

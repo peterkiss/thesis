@@ -578,21 +578,24 @@ algorithm.
 Linear regression is a method aiming to find a line best fitting to a given set of points. The implemented algorithm uses an iterative approach, where in each iteration step the result is a line a bit closer to the ideal one than in the previous iteration. To find a line with a smaller error in each step a well usable method is the gradient descent algorithm what I use to alter parameters until a given convergence criteria is met.(Algorithms in more detail in Section \ref{linearregression})
 The set used to test the convergence of the algoritms consists of 21 points :
 \begin{lstlisting}
- 	P ={(0.5, 1.0 ),	( 1.0, 2.0 ),
-		( 2.0, 4.0 ),	( 3.0, 6.0 ),
-		( 4.0, 8.0 ),	(5.0, 10.0 ),
-		( 6.0, 12.0 ),	( 7.0, 14.0 ),
-		( 8.0, 16.0 ),	(9.0, 18.0 ),
-		( 10.0, 20.0 ),	( -0.08, -0.16 ),
-		( 0.13, 0.26 ),	( -1.17, -2.35 ),
-		( 1.72, 3.45 ),	( 1.70, 3.41 ),
-		( 1.20, 2.41 ),	( -0.59, -1.18 ),
-		( 0.28, 0.57 ),	( 1.65, 3.30 ),
-		( -0.55, -1.08 )}
+ 	P ={(  0.5,    1.0 ),	( 1.0,  2.0  ),
+		(  2.0,    4.0 ),	( 3.0,  6.0  ),
+		(  4.0,    8.0 ),	( 5.0, 10.0  ),
+		(  6.0,   12.0 ),	( 7.0, 14.0  ),
+		(  8.0,   16.0 ),	( 9.0, 18.0  ),
+		( 10.0,   20.0 ),	(-0.08,-0.16 ),
+		( 0.13,   0.26 ),	(-1.17,-2.35 ),
+		( 1.72,   3.45 ),	( 1.70, 3.41 ),
+		( 1.20,   2.41 ),	(-0.59,-1.18 ),
+		( 0.28,   0.57 ),	( 1.65, 3.30 ),
+		(-0.55,  -1.08 )}
 \end{lstlisting}
-The target line equation is $y=2x+0$.
-
-The algorithm first read the iterates over the same point set until convergence. 
+The target line equation, which we want to approximate, is:
+\begin{equation}
+ y=2x+0
+\end{equation}
+I marked the parameters wanted $\Theta_0$ (theta_0) and $\Theta_1$ (theta_1), where $y = \Theta_1*x+ \Theta_1$.
+The algorithm first read the $P$ point-set iterates over the same points until convergence. The skeleton of computation looks the following way:
 \begin{lstlisting}
  val iteration = data.iterate { data =>
       
@@ -601,8 +604,6 @@ The algorithm first read the iterates over the same point set until convergence.
         .timeWindowAll(Time.seconds(1))
         // sum up all the steps in window
         .reduce(new UpdateAccumulator) 
-        // average the steps and update all parameters
-        .map(new Update)
         .broadcast
 
       val connected = data.connect(updated)
@@ -611,7 +612,10 @@ The algorithm first read the iterates over the same point set until convergence.
       (connected.select("iterate"), connected.select("output"))
     }
 \end{lstlisting}
-As a data entered in the computational pipeline the algorithm maps each point to a displacement to apply on parameters of the line. The displacement is defined by the $SubUbdate$ function, which computes the gradient of the point:
+
+
+
+As a data entered in the computational pipeline the algorithm maps	 each point to a displacement to apply on parameters of the line. The displacement is defined by the $SubUbdate$ function, which computes the gradient of the point:
 \begin{lstlisting}
 val delta_0 = - 0.1 * (data.y - (parameter.theta0 
 		+ (parameter.theta1 * data.x)) )
@@ -619,10 +623,72 @@ val delta_1 = - 0.1 * data.x * (data.y- ( (parameter.theta1 * data.x)
 		+ parameter.theta0 ) )
 val new_parameter = new Params(delta_0, delta_1)
 \end{lstlisting}
-The displacement vectors issued by $SubUpdate$ are collected together and summerized in every seconds, than the sum is applied to parameters of the line. The new line than must be broadcasted between all nodes.
+The displacement vectors issued by $SubUpdate$ are collected together and summerized in every seconds, then the sum is applied to parameters of the line. 
+The $SubUpdate$ task that implements a \textit{MapFunction} functional interface works analogously to usual MapReduce map functions. A MapFunction assigns an output element to each input record theoretically without need for maintaining internal state information ,therefore it can be parallelized across a set of nodes, and in case of partitioned streams it doesnt make any difference where incoming record are processed physically.
+
+Nevertheless the $SubUpdate$ function used in the algorithms uses a $(\Theta_0,\Theta_1)$ parameter pair to compute the vectors describing in what directions should the line move. These parameters (wrapped in a $Params$ class datastructure) need to be constantly updated, what update will hapen in the subsequent $Update$ task. After updating the parameters arrive back along the same circle of streams as point-data, and the containing $param$ variable takes always the newest returning value.    
+
+The $parameter$ variable in the possibly parallel $SubUpdate$ tasks stores eventually the result of all previous computations, that makes this task vulnarable against failures, and in case of failure of all nodes running $SubUpdate$ the computation must be restared from scratch. This makes choosing $SubUpdate$ task as a location, where snaphots should be taken, an obvious decision.  
+
+In Flink a task of which we want to take snaphots can be marked by implementing $Checkpointed$ interface, and overriding the two mandatory method $snapshotState$ and $restoreState$ specifying how we want to take the snapshot, and what must be done to restore the state of computation in case of failure. In our case is sufficient to store the value of $parameter$ and at restoring to load that back in the variable. The code of the $SubUpdate$ task can be look like below:
+
+\begin{lstlisting}
+class SubUpdate extends RichFlatMapFunction[Either[Data, Params],
+    (Params, Int)] with Checkpointed[Params]{
+    private var parameter: Params = Params(0.0, 0.0)
+  
+override def flatMap(in: Either[Data, Params],
+                         collector: Collector[(Params, Int)]): Unit = {
+      in match {
+        case Left(data) => { // if it receives actual poin
+  
+override def flatMap(in: Either[Data, Params],
+                         collector: Collector[(Params, Int)]): Unit = {
+      in match {
+        case Left(data) => { // if it receives actual points
+          val delta_0 = - 0.1 * (data.y - (parameter.theta0 + (parameter.theta1 * data.x)) )   
+          val delta_1 = - 0.1 * data.x * (data.y- ( (parameter.theta1 * data.x)+parameter.theta0 ) )
+          val parameter1 = new Params(delta_0, delta_1)
+          collector.collect(parameter1, count)
+
+        }
+        case Right(param) => {
+          parameter = new Params(( parameter.theta0-learningrate*param.theta0 ),(parameter.theta1- learningrate*param.theta1 ))
+        }
+      }
+    }
+
+    override def snapshotState(checkpointId: Long, checkpointTimestamp: Long): Params = parameter
+
+    override def restoreState(state: Params): Unit = parameter = state
+
+  }
+\end{lstlisting}
+
+After displacement vectors have been computed for points of the base dataset by the $SubUpdate$ function the recent $\Theta_0$ and $\Theta_1$ should be updated according to them. This could be easily done in $SubUpdate$ but here comes into play the distributed nature of the algorithms.The $SubUpdate$ function is written to be able work paralelly as a \textit{subtask} to reduce the workload of nodes running the task and increase the throughput of the system. 
+
+Depending on the network topology, the quality and quantity  of resources possessed by the given \textit{task manager}, the partitioning of the input stream  and other characteristics of the execution topology the convergence of the computation coul be diverted. Splitting the task into subtasks along with the rebalcing mechanisms can help to reduce the peril of this distraction.
+
+Nevertheless on the other hand transfering too much data along the possibly very slow communication channels of the topology cen result in increasing \textit{latency}.To reduce the communication burden of intermediate streams windowing can be used , e.g. summerizing th edisplacement vectors coming from the  different $SubUpdate$ subtasks. This implementation of linear regression uses time windowing but summing up a predefined number of incoming records can be another appropriate choice.
+To summerize the displacement vectors collected in one timewindow the algorithm uses  a reduce fuction computing sum of incoming records to adding them to partial result iteratively.
+
+\begin{lstlisting}
+ class UpdateAccumulator2 extends ReduceFunction[(Params, Int)]{
+   
+    override def reduce( value1 :(Params,Int) , value2: (Params, Int)) : (Params, Int)= {
+      val new_theta0: Double = value1._1.theta0 + value2._1.theta0
+      val new_theta1: Double = value1._1.theta1 + value2._1.theta1
+      val new_value = (Params(new_theta0, new_theta1), value2._2 + value1._2)
+      return new_value
+
+    }
+  }
+\end{lstlisting}
+After computing sum of the vectors the displacement must be broadcasted between all working nodes running $SubUpdate$ functions, which will apply the changes on its local paramater describing the recent line most fitting on point set.
 
 At the end of the iteration step the Flink API enable the algorithm to select the \textit{cooled down parts} and continue the computation only on \textit{hot parts} of the input set, but in this case we need all the data to met the convergence criteria, and we send back all the records in $IterationSelector$.    
 
-
+\subsection{Performance measurement}
+The linear regression Flink program computing the best fitting line on as set composed by 21 points is tested res
  
       

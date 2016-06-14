@@ -730,9 +730,7 @@ In the runtime always must be at least one master process, but in high availibil
 
 Workers as well as masters of the runtime are JVM processes. A worker may execute one or more subtasks paralelly in separate threads in so-called \textit{task-slots}, that represent a fixed subset Task manager's resources. Each subtasks have its own managed memory, though currently they compete for CPU time.
 
-In one task-slot may run multiple subtasks as well, if this way performance can be increased. Just to mention a trivial example, executing two subsequent map transformation on the same stream partition in different slots would lead to totally  needless communication overhead.
-
-With \textit{chaining} tasks slots can hold enire pipelines of the job. 
+In one task-slot may run multiple subtasks as well, if this way performance can be increased. Just to mention a trivial example, executing two subsequent map transformation on the same stream partition in different slots would lead to totally  needless communication overhead.With \textit{chaining} tasks slots can hold enire pipelines of the job. 
 
 
 

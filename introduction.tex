@@ -416,7 +416,7 @@ Reliability of channels ensures that the barriers injected by source will eventu
 
 
 \section{Iterative fault tolerance }
-\subsubsection{Iterative tasks}
+\subsection{Iterative tasks}
 In the field of data mining and machine learning executing data-parallel iterative algorithms on large datasets is getting more and more important.
 \paragraph{Machine learning}
 \begin{displayquote}
@@ -440,7 +440,7 @@ Many of the algorithms used in context of machine learning are of iterative or r
 
 %%\cite{allroadsleadtorome}
 
-t\subsubsection{Linear regression} \label{linearregression}
+\subsection{Linear regression} \label{linearregression}
 Linear regression aims, simply stated, to fit a line to a set of points. Using the line equation $y=mx+b$, we want to find the best pair of $m$ slope and $b$ value describing intersection point of the line and the y-axis. The most simple way  to calculate the most fitting line is to define an error function, what measures how good the is the line, e.g how well the given line fits to our data.
 \begin{equation}
 Error_{m,b}= \dfrac{1}{N} \sum_{i=1}^{N}(y_i-(mx_i+b))^{2}
@@ -466,9 +466,9 @@ When gradient descent is applied for \textit{linear regression}, the first step 
 \end{align}
 Using the partial derivative functions then we can initialize $b$ and $m$ variables, and let the gradient descent  algorithm march downhill on our error function towards the best line. In all iteration steps the algorithm modifies the values of the parameters according to partial derivatives, and results in a line with slightly lower error than the previous one. We also can define a rate specifying how big steps we take in the iteration steps. With smaller rate we progress slower, but with bigger rate we can miss the minimum. 
 \cite{gradientdescent}%%(https://spin.atomicobject.com/2014/06/24/gradient-descent-linear-regression/)
-\subsubsection{Iterative stream processing}
-Typically data-parallel processing frameworks relies on  submitting a new job for each iteration, on adding new additional nodes to the already running acyclic dataflow graph, or adding feedback edges. 
-\subsubsection{iterative fault tolerance}
+\subsection{Iterative stream processing}
+Typically data-parallel processing frameworks relies on  submitting a new job for each iteration, on adding new additional nodes to the already running acyclic dataflow graph, or on adding feedback edges. 
+\subsection{iterative fault tolerance}
 Implementing fault tolerance in distributed data analysis systems is a complex problem. Optimal solutions\cite{allroadsleadtorome} among others depend on size of cluster, on hardware-characteristics, on duration of analyzing application or on duration of execution stages. The better solution will be different  as well if the failure happens in the first minute of the computation or if if the system crashes after a week of work.
 Most solutions for fault tolerance introduce an overhead comparing to failure-free operation, as well as recovery procedures after a failure, all of these depends on parameters like the aforementioned ones.
 
@@ -582,7 +582,7 @@ Paralelly after receiving the barrier \textit{iteration head} forwards that to a
 
 \end{itemize}
 
-\citep{pull_1668}(https://github.com/apache/flink/pull/1668)
+\cite{pull}
 
 
 %%\subsection{Recovery}
@@ -591,33 +591,41 @@ Paralelly after receiving the barrier \textit{iteration head} forwards that to a
 %%TODO
 
 \section{Performance}
-In stream processing systems those essential aim is to answer queries with latency as low as possible a very important aspect is to measure the time overhead caused by  additional processes, that are necessary to carry out snapshotting. To evaluate this overhead I developed an implementation of linear regression using gradient descent
+In stream processing systems the essential aim is to answer queries with latency as low as possible. It is a very important aspect to measure the time overhead caused by  additional processes, i.e. those which are necessary to carry out snapshotting. In order to evaluate this overhead, I developed an implementation of linear regression using the gradient descent
 algorithm.
+
 \subsection{Linear regression with Flink Streaming}
-Linear regression is a method aiming to find a line best fitting to a given set of points. The implemented algorithm uses an iterative approach, where in each iteration step the result is a line a bit closer to the ideal one than in the previous iteration. To find a line with a smaller error in each step a well usable method is the gradient descent algorithm what I use to alter parameters until a given convergence criteria is met.(Algorithms in more detail in Section \ref{linearregression})
+Linear regression is a method aiming to find a line which best fits a given set of points. The implemented algorithm uses an iterative approach, where in each iteration step the result is a line a bit closer to the ideal one than that in the previous iteration. To find a line with a smaller error in each step, a well usable method is the gradient descent algorithm. I alter parameters until a given convergence criteria is met. (See the algorithms in more detail in Section~\ref{linearregression}.)
+
 \subsubsection{The Flink program}
 The input of the program, e.g. the set used to test the convergence of the algoritms consists of 21 points :
-\begin{lstlisting}
- 	P ={(  0.5,    1.0 ),	( 1.0,  2.0  ),
-		(  2.0,    4.0 ),	( 3.0,  6.0  ),
-		(  4.0,    8.0 ),	( 5.0, 10.0  ),
-		(  6.0,   12.0 ),	( 7.0, 14.0  ),
-		(  8.0,   16.0 ),	( 9.0, 18.0  ),
-		( 10.0,   20.0 ),	(-0.08,-0.16 ),
-		( 0.13,   0.26 ),	(-1.17,-2.35 ),
-		( 1.72,   3.45 ),	( 1.70, 3.41 ),
-		( 1.20,   2.41 ),	(-0.59,-1.18 ),
-		( 0.28,   0.57 ),	( 1.65, 3.30 ),
-		(-0.55,  -1.08 )}
-\end{lstlisting}
+
+{\small
+\begin{verbatim}
+P = { (  0.5,    1.0 ),( 1.0,  2.0  ),
+      (  2.0,    4.0 ),( 3.0,  6.0  ),
+      (  4.0,    8.0 ),( 5.0, 10.0  ),
+      (  6.0,   12.0 ),( 7.0, 14.0  ),
+      (  8.0,   16.0 ),( 9.0, 18.0  ),
+      ( 10.0,   20.0 ),(-0.08,-0.16 ),
+      ( 0.13,   0.26 ),(-1.17,-2.35 ),
+      ( 1.72,   3.45 ),( 1.70, 3.41 ),
+      ( 1.20,   2.41 ),(-0.59,-1.18 ),
+      ( 0.28,   0.57 ),( 1.65, 3.30 ),
+      (-0.55,  -1.08 ) }
+\end{verbatim}
+}
+
 The target line equation, which we want to approximate, is:
 \begin{equation}
  y=2x+0
 \end{equation}
-I marked the parameters wanted $\Theta_0$ (theta\_0) and $\Theta_1$ (theta\_1), where $y = \Theta_1*x+ \Theta_1$.
+I denoted the parameters with $\Theta_0$ (theta\_0) and $\Theta_1$ (theta\_1), so we regard $y = \Theta_1*x+ \Theta_1$.
 
-The algorithm first read the $P$ point-set iterates over the same points until convergence. The skeleton of computation looks the following way:
-\begin{lstlisting}
+The algorithm first reads the $P$ set of points, and then iterates over the same points until convergence. The skeleton of computation looks in the following way:
+
+{\small
+\begin{verbatim}
  val iteration = data.iterate { data =>
       
       // compute a single step using every sample
@@ -632,38 +640,40 @@ The algorithm first read the $P$ point-set iterates over the same points until c
         .split(new IterationSelector)
       (connected.select("iterate"), connected.select("output"))
     }
-\end{lstlisting}
+\end{verbatim}
+}
 
 
+When some data enters the computational pipeline, the algorithm maps each point to a displacement to be applied on the parameters of the line. The displacement is defined by the \verb:SubUpdate: function, which computes the gradient of the point:
 
-As a data entered in the computational pipeline the algorithm maps	 each point to a displacement to apply on parameters of the line. The displacement is defined by the $SubUbdate$ function, which computes the gradient of the point:
-\begin{lstlisting}
+{
+\begin{verbatim}
 val delta_0 = - 0.1 * (data.y - (parameter.theta0 
-		+ (parameter.theta1 * data.x)) )
+                + (parameter.theta1 * data.x)) )
 val delta_1 = - 0.1 * data.x * (data.y- ( (parameter.theta1 * data.x) 
-		+ parameter.theta0 ) )
+              + parameter.theta0 ) )
 val new_parameter = new Params(delta_0, delta_1)
-\end{lstlisting}
-The displacement vectors issued by $SubUpdate$ are collected together and summerized in every seconds, then the sum is applied to parameters of the line. 
-The $SubUpdate$ task that implements a \textit{MapFunction} functional interface works analogously to usual MapReduce map functions. A MapFunction assigns an output element to each input record theoretically without need for maintaining internal state information ,therefore it can be parallelized across a set of nodes, and in case of partitioned streams it doesnt make any difference where incoming record are processed physically.
+\end{verbatim}
+}
 
-Nevertheless the $SubUpdate$ function used in the algorithms uses a $(\Theta_0,\Theta_1)$ parameter pair to compute the vectors describing in what directions should the line move. These parameters (wrapped in a $Params$ class datastructure) need to be constantly updated, what update will hapen in the subsequent $Update$ task. After updating the parameters arrive back along the same circle of streams as point-data, and the containing $param$ variable takes always the newest returning value.    
+The displacement vectors issued by \verb:SubUpdate: are collected and summed up in every second, then the sum is applied to parameters of the line. 
+The \verb:SubUpdate: task, which implements a \verb|MapFunction| functional interface, works analogously to usual MapReduce map functions. A \verb|MapFunction| assigns an output element to each input record -- theoretically without the need for maintaining internal state information, therefore it can be parallelized across a set of nodes, and in the case of partitioned streams it does not make any difference where incoming records are processed physically.
 
-The $parameter$ variable in the possibly parallel $SubUpdate$ tasks stores eventually the result of all previous computations, that makes this task vulnarable against failures, and in case of failure of all nodes running $SubUpdate$ the computation must be restared from scratch. This makes choosing $SubUpdate$ task as a location, where snaphots should be taken, an obvious decision.  
+Nevertheless, the \verb:SubUpdate: function used in the algorithms uses a $(\Theta_0,\Theta_1)$ pair of parameters to compute the vectors describing in which directions the line should move. These parameters (wrapped in a \verb|Params| class data structure) need to be constantly updated. This update will happen in the subsequent \verb|Update| task. {\bf  After updating the parameters arrive back along the same circle of streams as point-data, and the containing \verb|param| variable takes always the newest returning value.}
 
-In Flink a task of which we want to take snaphots can be marked by implementing $Checkpointed$ interface, and overriding the two mandatory method $snapshotState$ and $restoreState$ specifying how we want to take the snapshot, and what must be done to restore the state of computation in case of failure. In our case is sufficient to store the value of $parameter$ and at restoring to load that back in the variable. The code of the $SubUpdate$ task can be look like below:
+The \verb|parameter| variable in the possibly parallel \verb:SubUpdate: task stores eventually the result of all previous computations, and this makes this task vulnarable against failures: in the case of a failure of all nodes running \verb:SubUpdate:, the computation must be restared from scratch. Therefore, it is an obvious decision to choose \verb:SubUpdate: as a task where snaphots should be taken.  
 
-\begin{lstlisting}
-class SubUpdate extends RichFlatMapFunction[Either[Data, Params],
-    (Params, Int)] with Checkpointed[Params]{
+In Flink, a task of which we want to take snaphots can be marked by mixing in the \verb|Checkpointed| trait, and overriding the two mandatory methods \verb|snapshotState| and \verb|restoreState|, specifying how we want to take the snapshot, and what must be done to restore the state of computation in the case of a failure. In our case, it is sufficient to store the value of \verb|parameter|, and (at restoring) to load that back in the variable. The code of the \verb:SubUpdate: task can look like the following:
+
+{
+\begin{verbatim}
+class SubUpdate
+    extends RichFlatMapFunction[Either[Data, Params], (Params, Int)]
+    with Checkpointed[Params] {
+
     private var parameter: Params = Params(0.0, 0.0)
   
-override def flatMap(in: Either[Data, Params],
-                         collector: Collector[(Params, Int)]): Unit = {
-      in match {
-        case Left(data) => { // if it receives actual poin
-  
-override def flatMap(in: Either[Data, Params],
+    override def flatMap(in: Either[Data, Params],
                          collector: Collector[(Params, Int)]): Unit = {
       in match {
         case Left(data) => { // if it receives actual points
@@ -683,18 +693,20 @@ override def flatMap(in: Either[Data, Params],
 
     override def restoreState(state: Params): Unit = parameter = state
 
-  }
-\end{lstlisting}
+}
+\end{verbatim}
+}
 
-After displacement vectors have been computed for points of the base dataset by the $SubUpdate$ function the recent $\Theta_0$ and $\Theta_1$ should be updated according to them. This could be easily done in $SubUpdate$ but here comes into play the distributed nature of the algorithms.The $SubUpdate$ function is written to be able work paralelly as a \textit{subtask} to reduce the workload of nodes running the task and increase the throughput of the system. 
+After displacement vectors have been computed for points of the base dataset by the \verb:SubUpdate: function, the recent $\Theta_0$ and $\Theta_1$ should be updated according to them. This could be easily done in \verb:SubUpdate:, but here comes into play the distributed nature of the algorithms. The \verb:SubUpdate: function is written to be able work in a parallel way as a \textit{subtask}, in order to reduce the workload of nodes running the task, and to increase the throughput of the system. 
 
-Depending on the network topology, the quality and quantity  of resources possessed by the given \textit{task manager}, the partitioning of the input stream  and other characteristics of the execution topology the convergence of the computation coul be diverted. Splitting the task into subtasks along with the rebalcing mechanisms can help to reduce the peril of this distraction.
+Depending on the network topology, the quality and quantity of resources possessed by the given \textit{task manager}, the partitioning of the input stream and other characteristics of the execution topology, the convergence of the computation could be diverted. Splitting the task into subtasks along with the rebalancing mechanisms can help to reduce the peril of this distraction.
 
-Nevertheless on the other hand transfering too much data along the possibly very slow communication channels of the topology cen result in increasing \textit{latency}.To reduce the communication burden of intermediate streams windowing can be used , e.g. summerizing th edisplacement vectors coming from the  different $SubUpdate$ subtasks. This implementation of linear regression uses time windowing but summing up a predefined number of incoming records can be another appropriate choice.
-To summerize the displacement vectors collected in one timewindow the algorithm uses  a reduce fuction computing sum of incoming records to adding them to partial result iteratively.
+However, transfering too much data along the possibly very slow communication channels of the topology can result in increased \textit{latency}. To reduce the communication burden of intermediate streams, windowing can be used, e.g. summing up the displacement vectors coming from the different \verb:SubUpdate: subtasks. This implementation of linear regression uses time windowing, but summing up a predefined number of incoming records can be another appropriate choice.
+To sum up the displacement vectors collected in one time window, the algorithm uses a reduce fuction computing sum of incoming records by adding them to some partial result iteratively.
 
-\begin{lstlisting}
- class UpdateAccumulator2 extends ReduceFunction[(Params, Int)]{
+{\small
+\begin{verbatim}
+class UpdateAccumulator2 extends ReduceFunction[(Params, Int)]{
    
     override def reduce( value1 :(Params,Int) , value2: (Params, Int)) : (Params, Int)= {
       val new_theta0: Double = value1._1.theta0 + value2._1.theta0
@@ -703,49 +715,54 @@ To summerize the displacement vectors collected in one timewindow the algorithm 
       return new_value
 
     }
-  }
-\end{lstlisting}
-After computing sum of the vectors the displacement must be broadcasted between all working nodes running $SubUpdate$ functions, which will apply the changes on its local paramater describing the recent line most fitting on point set.
+}
+\end{verbatim}
+}
 
-At the end of the iteration step the Flink API enable the algorithm to select the \textit{cooled down parts} and continue the computation only on \textit{hot parts} of the input set, but in this case we need all the data to met the convergence criteria, and we send back all the records in $IterationSelector$. 
+After computing the sum of the vectors, the displacement must be broadcasted among all working nodes which run the \verb:SubUpdate: function, and let them apply the changes on their local paramater describing the line that, up to now, fits the best on the point set.
+
+At the end of the iteration step, the Flink API enables the algorithm to select the \textit{cooled down parts}, and continue the computation only on \textit{hot parts} of the input set, but in this case we need all the data to meet the convergence criteria, and we send back all the records in 
+\verb|IterationSelector|. 
 
 \subsubsection{Deployment of the Flink program}   
-A Flink program like the one described above is executed in \textit{Flink runtime}, as a client program. It describes and send the dataflow to the runtime engine as a \textit{job}, than it either can disconnect, or can stay connected ot receive progress reports.
+A Flink program like the one described above is executed in \textit{Flink runtime}, as a client program. It describes and sends the dataflow to the runtime engine as a \textit{job}, and then it can either disconnect, or stay connected to receive progress reports.
 
-The Flink runtime(Figure \ref{fig:flinkrt}) which executes the computations specified in client consists of two types of processes:
+The Flink runtime (Figure~\ref{fig:flinkrt}) which executes the computations specified in the client consists of two types of processes~\cite{flink_concepts}:
+
 \begin{description}
-\item[Master processes], also called \textit{Job managers} coordinate the distributed execution, they schedule tasks, coordinate checkpoints and recovery after errors.
+\item[Master processes], also called \textit{Job managers} coordinate the distributed execution; they schedule tasks, coordinate checkpoints and recovery after errors.
 
-In the runtime always must be at least one master process, but in high availibility setups there are other masters as well that are stanby while the \textit{leader} does its job, but one of them takes leaders place if that becomes unavailible form same reason.
-\item[Worker processes] or \textit{Task managers} execute the tasks or subtasks of the dataflow. They are responsible to buffer data, and manage data exchange along streams. Naturally at least one worker process is always needed.
+There must always be at least one master process in the runtime. In high availibility setups there can be further masters, which are in a stand-by state while the \textit{leader} does its job -- but if it cecomes unavailable for some reasom, one of them can take its place.
+
+\item[Worker processes] or \textit{Task managers} execute the tasks (or subtasks) of the dataflow. They are responsible for buffering data, and managing data exchange along streams. Naturally, at least one worker process is always needed.
 \end{description}
-\cite{flink concepts} (https://ci.apache.org/projects/flink/flink-docs-master/concepts/concepts.html) 
 
 \begin{figure}[!ht]
   \centering    
-      \includegraphics[width=1\textwidth]{figures/flinkrt.svg}
-  \caption{Execution of Flink program\cite{flink concepts}}
+      \includegraphics[width=1\textwidth]{figures/flinkrt0.png}
+  \caption{Execution of Flink program\cite{flink_concepts}}
   \label{fig:flinkrt}
 \end{figure}  
 
-Workers as well as masters of the runtime are JVM processes. A worker may execute one or more subtasks paralelly in separate threads in so-called \textit{task-slots}, that represent a fixed subset Task manager's resources. Each subtasks have its own managed memory, though currently they compete for CPU time.
+Workers as well as masters of the runtime are JVM processes. A worker may execute one or more subtasks in parallel in separate threads, in so-called \textit{task-slots}, which represent a fixed subset of the Task manager's resources. Each subtask has its own managed memory, though currently they compete for CPU time.
 
-In one task-slot may run multiple subtasks as well, if this way performance can be increased. Just to mention a trivial example, executing two subsequent map transformation on the same stream partition in different slots would lead to totally  needless communication overhead.With \textit{chaining} tasks slots can hold enire pipelines of the job. 
+In one task-slot, multiple subtasks may run as well, if this way performance can be increased. Just to mention a trivial example, executing two subsequent map transformations on the same stream partition in different slots would lead to totally  needless communication overhead. With \textit{chaining} tasks slots can hold entire pipelines of the job. 
 
 
 
 \subsection{Performance measurement}
-The above described Flink program what implements the linear regression algorithm has been tested regarding the following questions:
+
+The above described Flink program, which implements the linear regression algorithm, has been studied in order to answer the following questions:
 \begin{itemize}
-\item How ABS checkpointing method infuences the execution time of a flink program?
-\item Comparing to the base ABS algorithm what is the performance impact of using the described snapshotting technique for iterated datastreams?
+\item How does the ABS checkpointing method infuence the execution time of a flink program?
+\item Comparing to the base ABS algorithm, what is the performance impact of using the described snapshotting technique for iterated datastreams?
 \item How successfully can the base ABS algorithm treat the failures in cyclic execution topologies?
-\item And at what extent can cyclic ABS to help the execution of iterative computations?
+\item At what extent can cyclic ABS help the execution of iterative computations?
 \end{itemize}
-To test the different approaches the program has been run several times in two version of the Flink runtime, first in one with the official ABS checkpointing method and second  in an experimental version which uses the iterative fault tolerance technique too along with ABS. (It may worth to mention that the official version of the runtime (Flink 1.1)still  does not allow users to use checkpointing in iterative topologies, but it is possible to force it to do that.)
+To investigate the different approaches, the program has been run several times with two versions of the Flink runtime -- firstly, one with the official ABS checkpointing method, and secondly an experimental version which uses the iterative fault tolerance technique too along with ABS. (It may worth to mention that the official version of the runtime, Flink 1.1, still does not allow users to use checkpointing in iterative topologies, but it is possible to force it to do that.)
  
 \subsubsection{Runtime overhead of checkpointing}
-To examine the increase of execution time of Flink jobs the execution environment was configured with a series of different checkpointing intervals: The used snapshotting frequencies are in the range of 0.5sec - 3.5 sec. The base line of the experiment is given by the average of the execution times of running the linear regression algorithm without any checkpointing method. Figure \ref{fig:checkpoint} summarizes the result of the experiment: 
+To examine the increase of execution time of Flink jobs, the execution environment was configured with a series of different checkpointing intervals:the used snapshotting frequencies are in the range of 0.5 sec -- 3.5 sec. The base line of the experiment is given by the average of the execution times of running the linear regression algorithm without any checkpointing method. Figure \ref{fig:checkpoint} summarizes the result of the experiment.
 
 \begin{figure}[!ht]
   \centering    
@@ -754,9 +771,11 @@ To examine the increase of execution time of Flink jobs the execution environmen
   \label{fig:checkpoint}
 \end{figure}     
 
-The results of the experiments demonstrate clearly, taking a snapshot using  ABS technique with added support for cyclic topologies requires slightly more execution time compared to simple ABS, but in the experimental program the difference is not really significant. If we compare the time of convergence in case of using any back-up technique to pure execution, the measurements proves that due to asynchronous and lightweight nature of ABS the execution time barely changes. The average termination time of the particular algorithm was in both cases around $6s$, 
+The results of the experiments demonstrate clearly that taking a snapshot using  the ABS technique with added support for cyclic topologies requires slightly more execution time compared to simple ABS, but with the code used in the experimental the difference is not really significant. If we compare the time of convergence in the case of using any back-up technique to pure execution, the measurements prove that due to the asynchronous and lightweight nature of ABS, the execution time barely changes. The average termination time of the particular algorithm was in both cases around $6s$.
+ 
 \subsubsection{Failure recovery}
-Most important characteristic of state backup and recovery mechanism naturally describes, how systems behave when a failure happened. In the second  the experiments examined this behavior of of Flink runtime in presence of the different ABS variants. In the experiment artficial errors have been thrown in different time intervals. The first part of Figure \ref{fig:failures} shows the cases, where no error has happened, the only difference to baseline here is the overhead of snapshotting.(In these cases the algorithm reaches convergence before the error is triggered.) 
+
+The most important characteristic of a state backup and recovery mechanism naturally describes how systems behave when a failure happened. In our next experiments we examined this behavior of the Flink runtime in the presence of the different ABS variants. During the experiments, artficial errors have been thrown in different time intervals. The first part of Figure~\ref{fig:failures} shows the cases where no error has happened: the only difference to baseline here is the overhead of snapshotting. (In these cases the algorithm reaches convergence before the error is triggered.) 
 
 \begin{figure}[!ht]
   \centering    
@@ -765,13 +784,13 @@ Most important characteristic of state backup and recovery mechanism naturally d
   \label{fig:failures}
 \end{figure}     
 
-When a failure happens original ABS restores the state of the checkointed operators, but the records that were in transition on communication channels will be lost. These records then will be resent by the source of execution graph, not respecting whether they are processed by some task or not. This leads to violating of principle of exactly-once-processing.
+When a failure happens, the original ABS restores the state of the checkointed operators, but the records that were in transition on communication channels will be lost. These records then will be resent by the source in the execution graph, not respecting whether they are processed by some task or not. This leads to violating the principle of exactly-once-processing.
 
-Usually exactly once processing guarantees are not required when we want to execute algorithms, whose purpose is to reach convergence. Loosing some records can slow down the termination of these algorithms, but other cases that can even speed it up. 
+Usually exactly-once-processing guarantees are not required when we want to execute algorithms whose purpose is to reach convergence. Loosing some records can slow down the termination of these algorithms -- or in other cases it can even speed them up. 
 
-Nevertheless the test cases have proven that in some cases as in this particular task, it is possible  to bias the computation to the extent that recovering takes more time than elapsed since the beginning of computations. In cases of repeating failures it is possible as well that  This can be observed in Figure \ref{fig:failures} on the right side, where the processes terminated with timeout. Timeout in our case was specified for 90 seconds.  
+Nevertheless the test cases have proven that in some cases, as in this particular task, it is possible  to bias the computation to the extent that recovering takes more time than elapsed since the beginning of computations. {\bf In cases of repeating failures it is possible as well that}  This can be observed in Figure \ref{fig:failures} on the right side, where the processes terminated with timeout. Timeout in our case was set to 90 seconds.  
 
-On the other hand adding logging of records which are in transition along the streams ABS can highly speed up the termination even in case of continuous failures, with relatively small additional latency. 
+On the other hand, adding logging of records which are in transition along the streams, ABS can highly speed up the termination even in the case of continuous failures, with relatively small additional latency. 
 
 
 

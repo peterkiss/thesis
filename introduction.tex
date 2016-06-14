@@ -594,7 +594,7 @@ The target line equation, which we want to approximate, is:
 \begin{equation}
  y=2x+0
 \end{equation}
-I marked the parameters wanted $\Theta_0$ (theta_0) and $\Theta_1$ (theta_1), where $y = \Theta_1*x+ \Theta_1$.
+I marked the parameters wanted $\Theta_0$ (theta\_0) and $\Theta_1$ (theta\_1), where $y = \Theta_1*x+ \Theta_1$.
 The algorithm first read the $P$ point-set iterates over the same points until convergence. The skeleton of computation looks the following way:
 \begin{lstlisting}
  val iteration = data.iterate { data =>
@@ -689,6 +689,43 @@ After computing sum of the vectors the displacement must be broadcasted between 
 At the end of the iteration step the Flink API enable the algorithm to select the \textit{cooled down parts} and continue the computation only on \textit{hot parts} of the input set, but in this case we need all the data to met the convergence criteria, and we send back all the records in $IterationSelector$.    
 
 \subsection{Performance measurement}
-The linear regression Flink program computing the best fitting line on as set composed by 21 points is tested res
+The above described Flink program what implements the linear regression algorithm has been tested regarding the following questions:
+\begin{itemize}
+\item How ABS checkpointing method infuences the execution time of a flink program?
+\item Comparing to the base ABS algorithm what is the performance impact of using the described snapshotting technique for iterated datastreams?
+\item How successfully can the base ABS algorithm treat the failures in cyclic execution topologies?
+\item And at what extent can cyclic ABS to help the execution of iterative computations?
+\end{itemize}
+To test the different approaches the program has been run several times in two version of the Flink runtime, first in one with the official ABS checkpointing method and second  in an experimental version which uses the iterative fault tolerance technique too along with ABS. (It may worth to mention that the official version of the runtime (Flink 1.1)still  does not allow users to use checkpointing in iterative topologies, but it is possible to force it to do that.)
  
-      
+\subsubsection{Runtime overhead of checkpointing}
+To examine the increase of execution time of Flink jobs the execution environment was configured with a series of different checkpointing intervals: The used snapshotting frequencies are in the range of 0.5sec - 3.5 sec. The base line of the experiment is given by the average of the execution times of running the linear regression algorithm without any checkpointing method. Figure \ref{fig:checkpoint} summarizes the result of the experiment: 
+
+\begin{figure}[!ht]
+  \centering    
+      \includegraphics[width=0.7\textwidth]{figures/checkpointing_overhead.png}
+  \caption{Execution time overhead with checkpointing}
+  \label{fig:checkpoint}
+\end{figure}     
+
+The results of the experiments demonstrate clear taking a snapshot using  ABS technique with added support for cyclic topologies requires slightly more execution time compared to simple ABS, but in the experimental program the difference is not really significant. If we compare the time of convergence in case of using any back-up technique to pure execution, the measurements proves that due to asynchronous and lightweight nature of ABS the execution time barely changes.
+\subsubsection{Failure recovery}
+Most important characteristic of state backup and recovery mechanism naturally describes, how systems behave when a failure happened. In the second  the experiments examined this behavior of of Flink runtime in presence of the different ABS variants. In the experiment artficial errors have been thrown in different time intervals. The first part of Figure \ref{fig:failures} shows the cases, where no error has happened, the only difference to baseline here is the overhead of snapshotting.(In these cases the algorithm reaches convergence before the error is triggered) 
+
+\begin{figure}[!ht]
+  \centering    
+      \includegraphics[width=0.7\textwidth]{figures/failures_impact.png}
+  \caption{Impact of failures on convergence time}
+  \label{fig:failures}
+\end{figure}     
+
+When a failure happens original ABS restores the state of the checkointed operators, but the records that were in transition on communication channels will be lost. These records then will be resent by the source of execution graph, not respecting whether they are processed by some task or not. This leads to violating of principle of exactly-once-processing.
+
+Usually exactly once processing guarantees are not required when we want to execute algorithms, whose purpose is to reach convergence. Loosing some records can slow down the termination of these algorithms, but other cases that can even speed it up. 
+
+Nevertheless the test cases have proven that in some cases as in this particular task it is possible  to bias the computation to the extent that recovering takes more time than elapsed since the beginning of computations. In cases of repeating failures it is possible as well that  This can be observed in Figure \ref{fig:failures} on the right side, where the processes terminated with timeout. Timeout in our case was specified for 90 seconds.  
+
+On the other hand adding logging of records which are in transition along the streams ABS can highly speed up the termination even in case of continuous failures, with relatively small additional latency.
+
+
+

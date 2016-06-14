@@ -350,8 +350,8 @@ Flink supports different notions of time giving programmers high flexibility in 
 Though developers of Apache consider stream processing engine the only processing mechanism needed to satisfy requirements of any big data application, they acknowledge that there is and will be a need for batch processing. In case of complex queries over static data, for legacy applications or for analysis applications where no efficient  algorithms  are yet known.
 
 Batch programs at Flink are treated as special cases of streaming, where the stream is finite and order or time of records are not relevant.
-\subsection{System architecture} 
-\subsubsection{Flink runtime and APIs}
+
+\subsection{Flink runtime and APIs}
 Core of Flink is the distributed dataflow engine, which executes dataflow programs. The processing work of Flink is executed by the runtime program composed by a directed graph of stateful operators, among which records are delivered by data streams. The two core API of Flink system are DataSet API, supporting batch tasks on finite streams, and the DataStream API  for processing unbounded data streams. Both of these API create runtime programs executable by the engine.
 On the top of these two APIs a number of domain specific libraries are built or being built, which generate DataSet or DataStream  API programs.In software stack now available are FlinkML, a library for machine learning tasks, Gelly for graph processing and Table API what provides SQL-like operations for Flink users.
 
@@ -361,7 +361,7 @@ Job Manager is responsible for distributed execution of the dataflow program tra
 
 Task managers do the actual processing work. They execute and supervise operators that produce streams and reports their status to Job Manager. It is responsible for maintaining buffer pools, for materializing streams and for network connections between operators.   
 
-\subsubsection{Dataflow graph}
+\subsection{Dataflow graph}
 A dataflow graph is an directed acyclic graph, that consists of stateful operators and data streams representing data produced and consumed by operators.
 %%job exec graph bullshit
 Dataflow graphs are executed in a data-parallel fashion, operators may be necessary to be parallelized into multiple instances, called \textit{subtasks} consuming \textit{stream partitions}. Partitioning patterns in splitting streams can be point-to-point, broadcast, repartition, fan-out or merge.
@@ -385,7 +385,7 @@ All of these control events assume that the stream partition transmitting them p
 one single stream guarantee  a FIFO order of records, developers of Flink made the decision to release order preserving in case of operators consuming more than one stream in order to avoid back-pressure.
 %% valahova back-pressure + pipelined processingnél is ez
 
-\subsubsection{Fault tolerance}\label{flinkft}
+\subsection{Fault tolerance}\label{flinkft}
 
 Flink offers strict  exactly-once-processing guarantees and deals with failures  via checkpointing and partial re-execution of collapsed computations. The general assumption the system makes connecting to this is that the datasources are persistent and replayable, like files or durable message queues like Kafka. If this is not the case the non persistent data sources still can be incorporated by maintaining a look-ahead log at the source operators.
 
@@ -440,7 +440,7 @@ Many of the algorithms used in context of machine learning are of iterative or r
 
 %%\cite{allroadsleadtorome}
 
-\subsubsection{Linear regression} \label{linearregression}
+t\subsubsection{Linear regression} \label{linearregression}
 Linear regression aims, simply stated, to fit a line to a set of points. Using the line equation $y=mx+b$, we want to find the best pair of $m$ slope and $b$ value describing intersection point of the line and the y-axis. The most simple way  to calculate the most fitting line is to define an error function, what measures how good the is the line, e.g how well the given line fits to our data.
 \begin{equation}
 Error_{m,b}= \dfrac{1}{N} \sum_{i=1}^{N}(y_i-(mx_i+b))^{2}
@@ -512,7 +512,7 @@ Designers of Naiad have chosen higher performance in the common case that there 
 \subsection{Iterative dataflows in Flink}
 Iterations and incremental processing are crucial for machine learning applications as well as for implementation of different graph processing algorithms. Iterations in Flink are implemented using \textit{iterative steps}, special operators that themselves can contain an execution graph. Flink makes difference on API level between two variant of iteration operator: simple textit{Iterate} and textit{Delta Iterate}.
 
-The \textbf{iterate operator} implements a simple form of iterations, the step function consumes the entire result set of its upstream operator or the previous iteration then executes the iteration step and produces a the new partial solution. Step function is executed multiple times until a termination condition is met, that can be either a given maximum number of iterations or a \textit{convergence criteria}, which should be satisfied by a textit{custom aggregator}.
+The \textbf{iterate operator} implements a simple form of iterations, the step function consumes the entire result set of its upstream operator or the previous iteration then executes the iteration step and produces a the new partial solution. Step function is executed multiple times until a termination condition is met, that can be either a given maximum number of iterations (in case of batch processing) or a \textit{convergence criteria}, which should be satisfied by a textit{custom aggregator}.
 \begin{figure}[!ht]
   \centering    
       \includegraphics[width=0.5\textwidth]{figures/iterations_iterate_operator.png}
@@ -529,6 +529,13 @@ The \textbf{iterate operator} implements a simple form of iterations, the step f
 \end{figure}
 In parallel setups the step functions of multiple task instances are evaluated in parallel on different partitions of iteration state. One such parallel evaluation of on all the task instances forms a textit{superstep}, which is the granularity of synchronization, therefore all iteration task have need to be complete before initialization of the next superstep. Termination criteria is also evaluated at the barriers between supersteps.	
 \cite{flink_doc_iteration}
+
+Iterative stream programs implement the \textit{step function} and embed it in a \textit{iterative stream}. We call \textit{iteration head} the entry point of the cycle and \textit{iteration tail} the exit point, where records not necessary anymore leave the loop.
+
+In an iterative datastream program there is no maximum number for iterations, instead users have to specify at \textit{iteration tail}, which part of the stream should be fed back to the iteration head and wich part can be forwarded to downstreams.To define which part should be fed back users can use a \textit{split} transformation or a \textit{filter}.
+
+
+
 
 \subsection{Asynchronous Barrier Snapshotting for cyclic dataflows}
 Apache Flink uses Asynchronous Barrier Snapshotting what is based on the principle, that it is feasible to do snapshots without persisting channels' state, if we divide the execution into stages. 
@@ -566,6 +573,18 @@ Again, to prove correctness of the algorithms we need to examine \textit{termina
 \item[Feasibility] may be proved in two steps. First local snapshots included in the global snapshot only contains state of task taken before any post-shot events received from regular upstreams. And second the downstream backup log included in the snapshot contains all records received on back-edges after the snapshot but before receiving back the barrier from back-edge.
 \end{description} 
 \cite{abs}
+
+A possible implementation of executing asynchronous barrier snapshotting with guarantees for iterative datastream jobs can be achieved by adding the following algorithm to the basic ABS:
+\begin{itemize}
+\item When an \textit{iteration head} receives a barrier from the runtime it goes into \textit{logging mode}. Logging mode in our case means that form this moment all records received back along back-edges will be buffered in head's state and won't be forwarded further until iteration head goes back to normal mode.
+Paralelly after receiving the barrier \textit{iteration head} forwards that to all its downstream nodes downstream on the cycle incuding.
+\item Eventually, when \textit{head} receives back the barrier along the back-edge it checkpoints its state as the log of returned records, flushes them towards the downstreams, and restes the log. when all that was done it goes back to normal forwarding mode. 
+
+\end{itemize}
+
+\citep{pull_1668}(https://github.com/apache/flink/pull/1668)
+
+
 %%\subsection{Recovery}
 %%TODO
 %%\subsection{Exactly once}
@@ -576,7 +595,8 @@ In stream processing systems those essential aim is to answer queries with laten
 algorithm.
 \subsection{Linear regression with Flink Streaming}
 Linear regression is a method aiming to find a line best fitting to a given set of points. The implemented algorithm uses an iterative approach, where in each iteration step the result is a line a bit closer to the ideal one than in the previous iteration. To find a line with a smaller error in each step a well usable method is the gradient descent algorithm what I use to alter parameters until a given convergence criteria is met.(Algorithms in more detail in Section \ref{linearregression})
-The set used to test the convergence of the algoritms consists of 21 points :
+\subsubsection{The Flink program}
+The input of the program, e.g. the set used to test the convergence of the algoritms consists of 21 points :
 \begin{lstlisting}
  	P ={(  0.5,    1.0 ),	( 1.0,  2.0  ),
 		(  2.0,    4.0 ),	( 3.0,  6.0  ),
@@ -595,6 +615,7 @@ The target line equation, which we want to approximate, is:
  y=2x+0
 \end{equation}
 I marked the parameters wanted $\Theta_0$ (theta\_0) and $\Theta_1$ (theta\_1), where $y = \Theta_1*x+ \Theta_1$.
+
 The algorithm first read the $P$ point-set iterates over the same points until convergence. The skeleton of computation looks the following way:
 \begin{lstlisting}
  val iteration = data.iterate { data =>
@@ -686,7 +707,34 @@ To summerize the displacement vectors collected in one timewindow the algorithm 
 \end{lstlisting}
 After computing sum of the vectors the displacement must be broadcasted between all working nodes running $SubUpdate$ functions, which will apply the changes on its local paramater describing the recent line most fitting on point set.
 
-At the end of the iteration step the Flink API enable the algorithm to select the \textit{cooled down parts} and continue the computation only on \textit{hot parts} of the input set, but in this case we need all the data to met the convergence criteria, and we send back all the records in $IterationSelector$.    
+At the end of the iteration step the Flink API enable the algorithm to select the \textit{cooled down parts} and continue the computation only on \textit{hot parts} of the input set, but in this case we need all the data to met the convergence criteria, and we send back all the records in $IterationSelector$. 
+
+\subsubsection{Deployment of the Flink program}   
+A Flink program like the one described above is executed in \textit{Flink runtime}, as a client program. It describes and send the dataflow to the runtime engine as a \textit{job}, than it either can disconnect, or can stay connected ot receive progress reports.
+
+The Flink runtime(Figure \ref{fig:flinkrt}) which executes the computations specified in client consists of two types of processes:
+\begin{description}
+\item[Master processes], also called \textit{Job managers} coordinate the distributed execution, they schedule tasks, coordinate checkpoints and recovery after errors.
+
+In the runtime always must be at least one master process, but in high availibility setups there are other masters as well that are stanby while the \textit{leader} does its job, but one of them takes leaders place if that becomes unavailible form same reason.
+\item[Worker processes] or \textit{Task managers} execute the tasks or subtasks of the dataflow. They are responsible to buffer data, and manage data exchange along streams. Naturally at least one worker process is always needed.
+\end{description}
+\cite{flink concepts} (https://ci.apache.org/projects/flink/flink-docs-master/concepts/concepts.html) 
+
+\begin{figure}[!ht]
+  \centering    
+      \includegraphics[width=1\textwidth]{figures/flinkrt.svg}
+  \caption{Execution of Flink program\cite{flink concepts}}
+  \label{fig:flinkrt}
+\end{figure}  
+
+Workers as well as masters of the runtime are JVM processes. A worker may execute one or more subtasks paralelly in separate threads in so-called \textit{task-slots}, that represent a fixed subset Task manager's resources. Each subtasks have its own managed memory, though currently they compete for CPU time.
+
+In one task-slot may run multiple subtasks as well, if this way performance can be increased. Just to mention a trivial example, executing two subsequent map transformation on the same stream partition in different slots would lead to totally  needless communication overhead.
+
+With \textit{chaining} tasks slots can hold enire pipelines of the job. 
+
+
 
 \subsection{Performance measurement}
 The above described Flink program what implements the linear regression algorithm has been tested regarding the following questions:
@@ -708,9 +756,9 @@ To examine the increase of execution time of Flink jobs the execution environmen
   \label{fig:checkpoint}
 \end{figure}     
 
-The results of the experiments demonstrate clear taking a snapshot using  ABS technique with added support for cyclic topologies requires slightly more execution time compared to simple ABS, but in the experimental program the difference is not really significant. If we compare the time of convergence in case of using any back-up technique to pure execution, the measurements proves that due to asynchronous and lightweight nature of ABS the execution time barely changes.
+The results of the experiments demonstrate clearly, taking a snapshot using  ABS technique with added support for cyclic topologies requires slightly more execution time compared to simple ABS, but in the experimental program the difference is not really significant. If we compare the time of convergence in case of using any back-up technique to pure execution, the measurements proves that due to asynchronous and lightweight nature of ABS the execution time barely changes. The average termination time of the particular algorithm was in both cases around $6s$, 
 \subsubsection{Failure recovery}
-Most important characteristic of state backup and recovery mechanism naturally describes, how systems behave when a failure happened. In the second  the experiments examined this behavior of of Flink runtime in presence of the different ABS variants. In the experiment artficial errors have been thrown in different time intervals. The first part of Figure \ref{fig:failures} shows the cases, where no error has happened, the only difference to baseline here is the overhead of snapshotting.(In these cases the algorithm reaches convergence before the error is triggered) 
+Most important characteristic of state backup and recovery mechanism naturally describes, how systems behave when a failure happened. In the second  the experiments examined this behavior of of Flink runtime in presence of the different ABS variants. In the experiment artficial errors have been thrown in different time intervals. The first part of Figure \ref{fig:failures} shows the cases, where no error has happened, the only difference to baseline here is the overhead of snapshotting.(In these cases the algorithm reaches convergence before the error is triggered.) 
 
 \begin{figure}[!ht]
   \centering    
@@ -723,9 +771,9 @@ When a failure happens original ABS restores the state of the checkointed operat
 
 Usually exactly once processing guarantees are not required when we want to execute algorithms, whose purpose is to reach convergence. Loosing some records can slow down the termination of these algorithms, but other cases that can even speed it up. 
 
-Nevertheless the test cases have proven that in some cases as in this particular task it is possible  to bias the computation to the extent that recovering takes more time than elapsed since the beginning of computations. In cases of repeating failures it is possible as well that  This can be observed in Figure \ref{fig:failures} on the right side, where the processes terminated with timeout. Timeout in our case was specified for 90 seconds.  
+Nevertheless the test cases have proven that in some cases as in this particular task, it is possible  to bias the computation to the extent that recovering takes more time than elapsed since the beginning of computations. In cases of repeating failures it is possible as well that  This can be observed in Figure \ref{fig:failures} on the right side, where the processes terminated with timeout. Timeout in our case was specified for 90 seconds.  
 
-On the other hand adding logging of records which are in transition along the streams ABS can highly speed up the termination even in case of continuous failures, with relatively small additional latency.
+On the other hand adding logging of records which are in transition along the streams ABS can highly speed up the termination even in case of continuous failures, with relatively small additional latency. 
 
 
 

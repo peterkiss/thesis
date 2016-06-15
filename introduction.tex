@@ -15,7 +15,10 @@ This paper is dedicated to examining how DSPSs can achieve resilience against fa
 
 First part of this paper is meant to describe the context of the topic, from the emerge of \textit{Big Data}(Section ~\ref{bigdata}), through architectural principles of distributed stream based applications (Section ~\ref{streaming}), to an overview of recovery techniques in already implemented systems (Section ~\ref{ft}). 
 
-The second part (from Section ~\ref{iftf}) makes an attempt to present fault-tolerance mechnism of Apache Flink, one of the most promising opensource stream processing system. In the last section (Section ~\ref{performance}) an experiment is  described. The conducted tests are aiming to examine the performance-impact Flink's iterative fault tolerance technique along with measurments executed using \textit{Apache Flink}(Section ~\ref{flink}) on the implementation of \textit{linear regression} (Section ~\ref{linearregression}). Some  Machine Learning problems as well as linear regression, have the characteristic that they are able to reach convergence from only a subset of input data.  
+The second part (from Section ~\ref{iftf}) makes an attempt to present fault-tolerance mechnism of Apache Flink(Section ~\ref{flink}), one of the most promising opensource stream processing system. In the last section (Section ~\ref{performance}) an experiment is  described. The executed tests are aiming to examine the performance-impact of Flink's checkpointing algorithm, that supports iterative fault tolerance technique, along with examining Flink's recovery abilities. 
+ 
+To conduct these investigations, and illustrate work of Flink runtime a small Flink program has been developed, which implements linear regression(Section ~\ref{linearregression}), a simple iterative machine learning technique.
+
      
 \section{Big Data}\label{bigdata}
 The appellation ,,Big Data'' is today one of the most hyped buzzword in information technology. The phenomenon behind the name can be described either 

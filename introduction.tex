@@ -5,17 +5,17 @@
 
 \section{Abstract}
 In the last decade the amount of data being created has increased incredibly.  
-,,Industrial Revolution of Data''\cite{aobd} is driven by explosion of cheap and numerous data gathering mobile devices, servers continuously 
+The ,,Industrial Revolution of Data''\cite{aobd} is driven by explosion of cheap and numerous data gathering mobile devices, servers continuously 
 logging messages about what they are doing, and by the emerging IoT. And above all the ultimate source of information, the Internet is almost incomprehensible enormous.
-This revolution profoundly influences the rules of the information business, the traditional informational systems, 
-like relational databases are pushed to their limits and in an increasing number of cases systems collapses under the pressure of Big Data.\cite{marz}
-As Big Data infrastructures became widely used, users of ,,Big Data'' then started expecting fresh, low latency results, above processing large volumes of data. In response to this demands the new breed of distributed applications has emerged, the  class of \textit{Distributed  Stream  Processing Systems}(DSPSs).
+This revolution profoundly influences the rules of the information business, the traditional informational systems,like relational databases are pushed to their limits and in an increasing number of cases the conventional systems collapses under the pressure of Big Data.\cite{marz}
+As Big Data infrastructures became widely used, users of ,,Big Data'' then started expecting fresh, low latency results, above the ability  of processing large volumes of data. In response to this demands the new breed of distributed applications has emerged, the  class of \textit{Distributed  Stream  Processing Systems}(DSPSs).
 
-As distributed systems in general DSPSs must comply with a number of base requirements, they have to ensure high availability, robustness against failures, and have to provide correct results.  
+As distributed systems in general, DSPSs must comply with a number of base requirements: they have to ensure high availability, robustness against failures, and have to provide correct results.  
 This paper is dedicated to examining how DSPSs can achieve resilience against failures at iterative computations, and how it influences efficiency of the computations in machine learning problems.
-First part of this paper is meant to describe the context of iterative fault tolerance, from the emerge of \textit{Big Data}(Section ~\ref{bigdata}), through architectural principles of distributed stream based applications (Section ~\ref{streaming}), to an overview of recovery techniques in already implemented systems (Section ~\ref{ft}). 
 
-The experiments described in the second part of the paper are executed using \textit{Apache Flink}(Section ~\ref{flink}) on the implementation of \textit{linear regression} (Section ~\ref{linearregression}). Some  Machine Learning problems as well as linear regression, have the characteristic that they are able to reach convergence from only a subset of input data.  Another experiment aims to discover the impact of recovery using exactly once processing guarantees.   
+First part of this paper is meant to describe the context of the topic, from the emerge of \textit{Big Data}(Section ~\ref{bigdata}), through architectural principles of distributed stream based applications (Section ~\ref{streaming}), to an overview of recovery techniques in already implemented systems (Section ~\ref{ft}). 
+
+The second part (from Section ~\ref{iftf}) makes an attempt to present fault-tolerance mechnism of Apache Flink, one of the most promising opensource stream processing system. In the last section (Section ~\ref{performance}) an experiment is  described. The conducted tests are aiming to examine the performance-impact Flink's iterative fault tolerance technique along with measurments executed using \textit{Apache Flink}(Section ~\ref{flink}) on the implementation of \textit{linear regression} (Section ~\ref{linearregression}). Some  Machine Learning problems as well as linear regression, have the characteristic that they are able to reach convergence from only a subset of input data.  
      
 \section{Big Data}\label{bigdata}
 The appellation ,,Big Data'' is today one of the most hyped buzzword in information technology. The phenomenon behind the name can be described either 
@@ -207,9 +207,9 @@ In case of dynamic partitioning operators should have an explicit  routing state
 
 
 %%\subsection{Fault tolerance}
-To enable low-latency applications which process Big Data in real time there is a need for streaming computational models, that scale transparently to large clusters possibly composed by hundreds of nodes. At this scale computational systems suffer from two major problems inevitable in large clusters, \textit{strugglers} and \textit{failures}. With increase of size of distributed systems these issues become more normal that exceptional, so streaming applications must provide protocols to overcome them.
+To enable low-latency applications which process Big Data in real time there is a need for streaming computational models, that scale transparently to large clusters, possibly composed by hundreds of nodes. At this scale computational systems suffer from two major problems which are inevitable in large clusters, from \textit{strugglers} and \textit{failures}. With increase of size of distributed systems these issues become more normal that exceptional, so streaming applications must provide protocols to overcome them.
 
-Streaming systems can be divided in two main category according to their architectural principles. \textit{Microbatch systems}, like \textit{Spark Streaming} \cite{discretizedstreams} use a series of stateless, deterministic batch computations on small time intervals, while in \textit{continous operator model} stateful operators recompute their state incrementally after each incoming message. Continous dataflow systems can choose between two possibility of storing backed-up states, they either store that at upstream operators\cite{mapreduceonline}\cite{storm} or use a reliable centralized storage\cite{millwheel}\cite{stratosphere}, ancestor of \textit{Apache Flink}. 
+Streaming systems can be divided in two main category according to their architectural principles. \textit{Microbatch systems}, like \textit{Spark Streaming} \cite{discretizedstreams} use a series of stateless, deterministic batch computations on small time intervals, while in \textit{continous operator model} the stateful operators recompute their state incrementally after each incoming message. Continous dataflow systems can choose between two possibility of storing backed-up states, they either store that at upstream operators\cite{mapreduceonline}\cite{storm} or use a reliable centralized storage\cite{millwheel}\cite{stratosphere}, ancestor of \textit{Apache Flink}. 
 \subsection{Microbatch model}
 
 
@@ -337,64 +337,64 @@ The system afterward needs to update its topology, namely change  \textit{routin
 
 
 \section{Apache Flink}\label{flink}
-Apache Flink is an open source data processing system built on the philosophy that embraces  data stream processing as the unifying model for real-time analysis, continuous streams and batch processing, both in  programming model and execution engine. 
+Apache Flink is an open source data processing system built on the philosophy that considers data stream processing as the unifying model for real-time analysis of continuous streams and batch processing, both in  programming model and execution engine. 
 According to that philosophy, if the stream processing system is used in combination with durable message queues like \textit{Apache Kafka} or \textit{Amazon Kinesis}  
-it allows quasi arbitrary replay of data streams. Stream processing programs make no difference between processing the latest events in real-time , 
-continuously aggregating data periodically in large windows or processing terabytes of historical data, all of these types of computations  simply start their work at 
+it allows quasi arbitrary replay of data streams. Stream processing programs make no difference between processing the latest events in real-time, 
+continuously aggregating data in large processing windows or processing terabytes of historical data. All of these types of computations  simply start their work at 
 different points in the durable stream and maintain different forms of state. Since Flink also provides a highly flexible windowing mechanism, 
-FLink programs can compute both early and approximate, as well as delayed and accurate results in the same operation obviating the need to combine different systems eventually doing the same jobs. 
-for the two use cases.
+FLink programs can compute both early and approximate, as well as delayed and accurate results in the same operation, obviating the need to combine different systems which are eventually doing the same jobs 
+just in the two use cases.
 
 Flink supports different notions of time giving programmers high flexibility in defining how events should be correlated.
 
 Though developers of Apache consider stream processing engine the only processing mechanism needed to satisfy requirements of any big data application, they acknowledge that there is and will be a need for batch processing. In case of complex queries over static data, for legacy applications or for analysis applications where no efficient  algorithms  are yet known.
 
-Batch programs at Flink are treated as special cases of streaming, where the stream is finite and order or time of records are not relevant.
+Batch programs at Flink are treated as special cases of streaming, where the stream is finite, and order or time of records are not relevant.
 
 \subsection{Flink runtime and APIs}
 Core of Flink is the distributed dataflow engine, which executes dataflow programs. The processing work of Flink is executed by the runtime program composed by a directed graph of stateful operators, among which records are delivered by data streams. The two core API of Flink system are DataSet API, supporting batch tasks on finite streams, and the DataStream API  for processing unbounded data streams. Both of these API create runtime programs executable by the engine.
 On the top of these two APIs a number of domain specific libraries are built or being built, which generate DataSet or DataStream  API programs.In software stack now available are FlinkML, a library for machine learning tasks, Gelly for graph processing and Table API what provides SQL-like operations for Flink users.
 
-In a Flink cluster there are three types of processes, client process a Job Manager and Task Managers. The client takes the user's program code and transforms it to a dataflow graph which is then submitted to the Job Manager. At this transformation the system also examines the data types will be forwarded by intermediate streams,and generates serializers and other data scheme specific program codes. In case of using DataSet API an additional optimization phase is inserted at this point, similar to ones performed by relational query optimizers.
+In a Flink cluster there are three types of processes: client process, a Job Manager and Task Managers. The client takes the user's program code and transforms it to a dataflow graph, which is then submitted to the Job Manager. At this transformation the system also examines the data types that will be forwarded by intermediate streams,and generates serializers and other data scheme specific program codes. In case of using DataSet API, an additional optimization phase is inserted at this point, similar to ones performed by relational query optimizers.
 
-Job Manager is responsible for distributed execution of the dataflow program translated from user code. Tracking progress and state of operators are among tasks of Job Manager as well as schedule scale-out, checkpointing and organize failure recovery.
+\textit{Job Manager} is responsible for distributed execution of the dataflow program translated from user code. Tracking progress and state of operators are among tasks of Job Manager as well as schedule scale-out, checkpointing and organize failure recovery.
 
-Task managers do the actual processing work. They execute and supervise operators that produce streams and reports their status to Job Manager. It is responsible for maintaining buffer pools, for materializing streams and for network connections between operators.   
+\textit{Task managers} do the actual processing work. They execute and supervise operators that produce streams and reports their status to Job Manager. It is responsible for maintaining buffer pools, for materializing streams and for network connections between operators.   
 
 \subsection{Dataflow graph}
-A dataflow graph is an directed acyclic graph, that consists of stateful operators and data streams representing data produced and consumed by operators.
+A  \textit{dataflow graph} is a directed acyclic graph, that consists of stateful operators and data streams representing data produced and consumed by operators.
 %%job exec graph bullshit
 Dataflow graphs are executed in a data-parallel fashion, operators may be necessary to be parallelized into multiple instances, called \textit{subtasks} consuming \textit{stream partitions}. Partitioning patterns in splitting streams can be point-to-point, broadcast, repartition, fan-out or merge.
 
-Streams transferring data between operators are logical in the sense that they are not necessarily materialized on disk. the particular behavior of a data stream is defined by higher levels of Flink, for example optimizer used by DataSet API.
+Streams transferring data between operators are logical in the sense that they are not necessarily materialized on disk. The particular behavior of a data stream is defined by higher levels of Flink, for example optimizer used by DataSet API.
 
-Apache Flink uses \textit{pipelined intermediate streams} in continuous streaming programs between operators running concurrently.in order to compensate for short-term througput fluctuations system also able to provide some elasticity through using intermediate buffer pools.  
+Apache Flink uses \textit{pipelined intermediate streams} in continuous streaming programs between operators running concurrently. In order to compensate for short-term througput fluctuations the system is also able to provide some elasticity through using intermediate buffer pools.  
 
-On the other hand in batch jobs \textit{blocking streams} are used, where the stream buffers all of the usptream operator's data before transitting to consumer separating this way consecutive tasks into different execution stages. Using 
- this type of streams results in increased memory usage, therefore spilling data to secondary storage is more frequent. Blocking streams are useful is cases where as well where pipeline-breaking operators such as join\cite{distributedjoin} could be end up in dead-locks.
+On the other hand in batch jobs \textit{blocking streams} are used, where the stream buffers all of the usptream operator's data before transitting to consumer, separating this way consecutive tasks into different execution stages. Using 
+ this type of streams can result in increased memory usage, therefore spilling data to secondary storage is more frequent. Blocking streams are useful is cases where as well where pipeline-breaking operators such as join\cite{distributedjoin} could be end up in dead-locks.
 
 \paragraph{Control the dataflow graph}
-Apart from data exchange operators of Flink's dataflow graph communicate with different control events. These special events are transmitted injecting into datastreams by the operators, and are delivered along with data records. Flink uses lots of these special types of control events, among others>
+Apart from data exchange operators of the dataflow graph, components of the system communicate with different control events as well. These special events are transmitted injecting into datastreams by the operators, and are delivered along with data records. Flink uses lots of these special types of control events, among others:
 \begin{description}
-\item[Checkpoint barriers]that coordinate distributed snapshots and checkpointing by dividing the stream into pre-checkpoint and post-checkpoint parts.
+\item[Checkpoint barriers]that coordinate distributed snapshots by dividing the stream into pre-checkpoint and post-checkpoint parts.
 \item[Watermarks] which are indicating progress of event time in the stream partition.
-\item[Iteration barriers] that signaling that a stream partition  has reached the end of a \textit{superstep} in iterative algorithms.
+\item[Iteration barriers] that signal that a stream partition has reached the end of a \textit{superstep} in iterative algorithms.
 \end{description}
 
-All of these control events assume that the stream partition transmitting them preserves  the order of records.  Though unary operators what consume one  
-one single stream guarantee  a FIFO order of records, developers of Flink made the decision to release order preserving in case of operators consuming more than one stream in order to avoid back-pressure.
+All of these control events assume that the stream partition transmitting them preserves  the order of records.  Though unary operators, that consume 
+one single stream guarantee a FIFO order of records, developers of Flink made the decision to release order preserving in case of operators that consumes more than one stream in order to avoid back-pressure.
 %% valahova back-pressure + pipelined processingnél is ez
 
 \subsection{Fault tolerance}\label{flinkft}
 
-Flink offers strict  exactly-once-processing guarantees and deals with failures  via checkpointing and partial re-execution of collapsed computations. The general assumption the system makes connecting to this is that the datasources are persistent and replayable, like files or durable message queues like Kafka. If this is not the case the non persistent data sources still can be incorporated by maintaining a look-ahead log at the source operators.
+Flink offers strict  exactly-once-processing guarantees and deals with failures  via checkpointing and partial re-execution of collapsed computations. The general assumption the system makes relating to this is that the datasources are persistent and replayable, like files or durable message queues like Kafka. If this is not the case the non persistent data sources still can be incorporated by maintaining a look-ahead log at the source operators.
 
 \paragraph{Checkpointing}
-The checkpointing mechanism of Apache Flink is based on the notion of \textit{distributed asynchronous snapshots} in order to achieve exactly-once-processing. The unbounded nature of input in continous stream processing scenarios makes recomputational recovery mechanism cumbersome, which possibly would take months to replay computations in long-running system. 
-To reach finite recovery time Flink regularly take snapshots of the state of the operators along with the current position of input stream. The challenges in this, that in order to execute checkpointing with low latency, the system should avoid halting the execution of the topology. 
+The checkpointing mechanism of Apache Flink is based on the algorithm of \textit{distributed asynchronous snapshots} which provides exactly-once-processing guatantees. The unbounded nature of input data in continous stream processing scenarios makes recomputational recovery mechanism cumbersome, it possibly would take months to replay computations in long-running system. 
+To reach finite recovery time Flink regularly take snapshots of the state of the operators along with the current position of input stream. The challenge in this is that in order to execute checkpointing with low latency, the system should avoid halting the execution of the topology. 
 
 \paragraph{Asynchronous Barrier Snapshotting}
- The idea behind ABS\cite{abs} is that it is possible to avoid persisting the state of the intermediate streams if the capture of the snapshot is carried out in stages. This stages split the stream and computations into a series of possible executions, where all inputs entered have been fully processed by the SPS. When all input data is processed the set of the operator states reflects the whole execution history , therefore it suffices to be solely used for the snapshot.
+ The idea behind ABS\cite{abs} is that it is possible to avoid persisting the state of the intermediate streams if the capture of the snapshot is carried out in stages. This stages split the stream and computations into a series of possible executions, where all inputs that entered the the system have been fully processed. When all input data is processed, the set of the operator states reflects the whole execution history, therefore it suffices to be solely used for the snapshot.
 
 \textit{Apache Flink} implements ABS (mentioned before in \ref{abs}) by periodically injecting special barrier markers in the input stream. The barriers then are pushed through the whole execution graph without breaking continuous data ingestion.
 
@@ -403,12 +403,12 @@ Global snapshots are incrementally constructed as each task receives the barrier
 \begin{itemize}
 \item Network channels e.g. delivery mechanisms of intermediate streams are reliable and maintain a FIFO delivery order of tuples and can be 
 \textit{blocked} and \textit{unblocked}.
-\item When a channel is blocked, all messages to are buffered and not delivered until unblock operation.
+\item When a channel is blocked, all messages are buffered and not delivered until unblock operation.
 \item Tasks can trigger \textit{block}, \textit{unblock}, and \textit{send messages} operations on their channels.
 \item Control messages injected by source tasks are resolved into a \textit{NIL} input channel.
 \end{itemize}
 
-When a source  receives the barrier injected by a central coordinator it snapshots its state then broadcasts the signal to all its outputs. When a non-source tasks receives a barrier, it blocks the input on that channel until the barrier arrives on all the other streams as well. When all channels delivered the barrier, the task takes the snapshot of its state and broadcasts the barrier to downstreams, and unblocks incoming streams to continue its computations.
+When a source  receives the barrier injected by a central coordinator, it snapshots its state then broadcasts the signal to all its outputs. When a non-source tasks receives a barrier, it blocks the input on that channel until the barrier arrives on all the other streams as well. When all channels delivered the barrier, the task takes the snapshot of its state and broadcasts the barrier to downstreams, and finally unblocks incoming streams to continue its computations.
 After all the tasks took the snapshot of their operation state in a stage, the complete global snapshot $G^{*} = (T^{*},E^{*})$ will only consists of sum of operator states $T^{*}$, while $E^{*}= \emptyset$.
 
 Reliability of channels ensures that the barriers injected by source will eventually arrives to all alive tasks in the DAG topology, and such this  satisfies the requirement of \textit{termination}. \textit{Feasibility} e. g. consistency of the snapshot is guaranteed by FIFO ordering property and blocking of input channels ensuring that no tuple succeeding a barrier are processed before the snapshot is taken. 
@@ -423,29 +423,29 @@ In the field of data mining and machine learning executing data-parallel iterati
 Machine learning\cite{ml}%%(http://www.sas.com/en_us/insights/analytics/machine-learning.html) 
 is a method of data analysis that automates analytical model building. Using algorithms that iteratively learn from data allows computers to find hidden insights without being explicitly programmed where to look.
 \end{displayquote}
-Iterations are fundamental in machine learning tasks, since this subsequent executions of computations on the evolving datasets allows the model to independently adopt. Applications using this iterative aspect learn from previous computations and produce reliable and repeatable results, and based on that they are getting able to make better decisions.
+Iterations are fundamental in machine learning tasks, since this subsequent executions of computations on the evolving datasets allows the model to independently adapt. Applications using this iterative aspect learn from previous computations and produce reliable and repeatable results, and based on that they are getting able to make better decisions.
 Machine learning methods\cite{ml}%%(http://www.sas.com/en_us/insights/analytics/machine-learning.html)
  can be classified into groups based on additional information given the system about input:
  
 \begin{description}
-\item[Supervised learning] algorithms receives a set inputs labeled with correct outputs the built computation model should create. The  algorithm learns from comparing the actual outputs to the correct ones. Supervised learning is commonly used in computations, where future events can be predicted by historical data. 
+\item[Supervised learning] algorithms receives a set of input data labeled with the  correct output what the constructed computation model should create. The  algorithm learns from comparing the actual outputs to the correct ones. Supervised learning is commonly used in computations, where future events can be predicted by historical data. 
 \item[Unsupervised learning] means that the system has to figure out what is being shown, without being told right answers. The goal is to find some structure in explored data. A popular example is recommendation systems, where we want to discover similar customer segments for example to be treated similarly in marketing campaigns.
-\item[Semi-supervised learning] is used for the same tasks where supervised learning is usable, but it uses both labeled and unlabeled data for training. Usually the quantity of labeled data is much smaller, since labeling might be too expensive. 
-\item[Reinforced learning] algorithms are used to discover actions yield the highest rewards. The {\textit{agent}} who learns through trials and error which of the possible {\textit{actions}} should be executed in the given {\textit{environment}} to perform best.
+\item[Semi-supervised learning] is used for the same tasks where supervised learning is usable, but it uses both labeled and unlabeled data for training. Usually the quantity of labeled data is much smaller, since labeling might be very expensive. 
+\item[Reinforced learning] algorithms are used to discover actions yield the highest rewards. The {\textit{agent}} who learns through trials and errors which of the possible {\textit{actions}} should be executed in the given {\textit{environment}} to perform best.
 \end{description}
 
-Many of the algorithms used in context of machine learning are of iterative or recursive nature, where the computations needs be repeated until a given termination condition is met.\cite{allroadsleadtorome}
+Many of the algorithms used in context of machine learning are of iterative or recursive nature, where the computations needs to be repeated until a given termination condition is met.\cite{allroadsleadtorome}
 
 %%\paragraph{Recovery strategies}
 
 %%\cite{allroadsleadtorome}
 
 \subsection{Linear regression} \label{linearregression}
-Linear regression aims, simply stated, to fit a line to a set of points. Using the line equation $y=mx+b$, we want to find the best pair of $m$ slope and $b$ value describing intersection point of the line and the y-axis. The most simple way  to calculate the most fitting line is to define an error function, what measures how good the is the line, e.g how well the given line fits to our data.
+Linear regression aims, simply stated, to fit a line to a set of points. Using the line equation $y=mx+b$, we want to find the best pair of $m$ slope parameter and $b$ value describing intersection point of the line and the y-axis. The most simple way  to calculate the most fitting line is to define an error function, what measures how good  the line is, e.g how well the given line fits to our data.
 \begin{equation}
 Error_{m,b}= \dfrac{1}{N} \sum_{i=1}^{N}(y_i-(mx_i+b))^{2}
 \end{equation}
-Lines fit data better will result a lower value, so what we have to do is to minimize the error function to get the best line possible. If we depict the possible $m$ and $b$ parameters and respective Error value in a 3 dimensional coordinate system (Figure ~\ref{fig:gradient_descent_error_surface}),where each point represents a line, we want to find the closest point to $(m,b)$ plain. 
+Lines fit data better will result a lower error value, so what we have to do is to minimize the error function to get the best line. If we depict the possible $m$ and $b$ parameters and respective Error values in a 3 dimensional coordinate system (Figure ~\ref{fig:gradient_descent_error_surface}),where each point represents a line, we want to find the closest point to $(m,b)$ plain. 
 \begin{figure}[!ht]
   \centering    
       \includegraphics[width=0.5\textwidth]{figures/gradient_descent_error_surface.png}
@@ -453,13 +453,13 @@ Lines fit data better will result a lower value, so what we have to do is to min
   \label{fig:gradient_descent_error_surface}
 \end{figure}
 
-To find the minimum of our two-variable equation a good way is to use \textit{Gradient descent}\cite{wikigraddesc} algorithm. Gradient descent technique is an iterative algorithm used for find the local minimum of multi-variable functions. It is based on the observation, that if a multi-variable $F$ function is defined and differentiable in a neighborhood of a point $a$, F decreases fastest in the direction of the negative gradient of F($-\nabla F$). ($\nabla F$ is defined as: 
+To find the minimum of our two-variable equation a good way is to use \textit{Gradient descent}\cite{wikigraddesc} algorithm. Gradient descent technique is an iterative algorithm used to find the local minimum of multi-variable functions. It is based on the observation, that if a multi-variable $F$ function is defined and differentiable in a neighborhood of a point $a$, F decreases fastest in the direction of the negative gradient of F ($-\nabla F$). ($\nabla F$ is defined as: 
 \begin{equation}
 \nabla F= \dfrac{\partial F}{\partial x_1}\boldsymbol{e_1}+\dots+\dfrac{\partial F}{\partial x_n}\boldsymbol{e_n},
 \end{equation} 
 where $F:\mathbb{R}^{n}\to 	\mathbb{R}$ is n-dimensional function and $\boldsymbol{e_i}$,($i\in\{1\dots n\})$ are orthogonal unit vectors.
 
-When gradient descent is applied for \textit{linear regression}, the first step to do is to calculate the partial derivatives of the $Error$ function for  $b$ and $m$ variables defining that.
+When gradient descent is applied for \textit{linear regression}, the first step to do is to calculate the partial derivatives of the $Error$ function for  $b$ and $m$ variables.
 \begin{align}
 \dfrac{\partial Error}{\partial m} = \dfrac{2}{N}\sum_{i=1}^{N} -x_i(y_i-(mx_i+b)) \\
 \dfrac{\partial Error}{\partial b} = \dfrac{2}{N}\sum_{i=1}^{N} -(y_i-(mx_i+b))
@@ -474,11 +474,11 @@ Most solutions for fault tolerance introduce an overhead comparing to failure-fr
 
 Iterative recovery mechanism can be classified based according to their level of pessimism in three categories\cite{allroadsleadtorome}: \textit{Operator level pessimistic recovery},\textit{Iteration-level pessimistic recovery}, and \textit{optimistic recovery}, which is mostly applicable for ML-tasks. 
 
-\paragraph{Operator-level recovery}, implemented for instance in MapReduce\cite{mapreduce}, backs-up the result of each individual stage of execution. Backing-up is done by write the whole result set either on local disk (at Map) or in distributed file system (Reduce). These writes incur a very high overhead for rapid recovery. For iterative tasks the amount of work in an iteration step is usually  much lower than in a typical MapReduce-job, therefore using this type of recovery is a real overkill.
+\paragraph{Operator-level recovery}, implemented for instance in MapReduce\cite{mapreduce}, backs up the result of each individual stage of execution. Backing-up is done by write the whole result set either on local disk (at Map) or in distributed file system (Reduce). These writes incur a very high overhead for rapid recovery. For iterative tasks the amount of work in an iteration step is usually  much lower than in a typical MapReduce-job, therefore using this type of recovery is a real overkill.
 
-\paragraph{Iteration level recovery} fits better to iterative tasks. Though the workload of an iteration is typically smaller than an ordinary MapReduce job, execution time across all iterations  may still be significant. Some graph-processing systems\cite{distgraphlab}\cite{pregel} therefore checkpoints the result of an iteration as whole. In case of failure all participating operator needs to revert to the last checkpointed state. By skipping checkpointing in a number of iterations, iteration-level recovery may provide the possibility to balance between higher overhead and better performance.
+\paragraph{Iteration level recovery} fits better to iterative tasks. Though the workload of an iteration is typically smaller than an ordinary MapReduce job nas to process, execution time across all iterations  may still be significant. Some graph-processing systems\cite{distgraphlab}\cite{pregel} therefore checkpoints the result of an iteration as whole. In case of failure all participating operator needs to revert to the last checkpointed state. By skipping checkpointing in a number of iterations, iteration-level recovery may provide the possibility to balance between higher overhead and better performance.
 
-\paragraph{Optimistic recovery for Machine Learning}\cite{allroadsleadtorome} brings a different approach in fault tolerance by omit any kind of checkpointing. The idea is, that many Machine Learning algorithms does not need \textit{exactly once} semantics, thus if a number of tuples doesn't appear in the computation result the job will still converge.  This technique instead of reverting to a former state in case of failure applies a \textit{compensate} function on participating machines. The role of this function is to set the state of the entire application to a state from which the system can converge.
+\paragraph{Optimistic recovery for Machine Learning}\cite{allroadsleadtorome} brings a different approach in fault tolerance by omit any kind of checkpointing. The idea is, that many Machine Learning algorithms do not need \textit{exactly once} semantics, thus if a number of tuples doesn't appear in the computation result the job will still converge.  This technique instead of reverting to a former state in case of failure applies a \textit{compensate} function on participating machines. The role of this function is to set the state of the entire application to a state from which the system can converge.
 
 \paragraph{Naiad - timely dataflow : a simple but costly solution}
 Microsoft's  distributed stream processing system, Naiad\cite{naiad} offers ability to perform iterative and incremental computations beyond providing high throughput and low latency.
@@ -487,7 +487,7 @@ The underlying concept of \textit{timely dataflows} implemented by Naiad system 
 Before a tuple enters the pipelined computational system of timely dataflow, an external producer labels it with an integer \textit{epoch}, indicating a 
 logical time window the record produced in. The producer can also notify operators (\textit{vertices} in Naiad) when from a given epoch no more message will be sent, and similarly the output vertices signals external consumers that processing an epoch is finished. In timely dataflow vertices are organized into possibly nested \textit{loop contexts}, and each cycle in the graph must be entirely contained by a loop context. Edges entering the loop context must pass through an \textit{ingress vertex}, edges leaving the loop has to pass through an \textit{egress vertex}, and a loop also has to contain at least one \textit{feedback vertex} which is not nested within any contained loop context.
 
-Using constrains described  timely dataflow allowed designers of Naiad to define timestamps in the following way:
+Using the described constrains, timely dataflow allows designers of Naiad to define timestamps in the following way:
 \begin{equation}
 \tau=(\overbrace{e \in \mathbb{N}}^\text{epoch},\overbrace{\langle c_1,\dots,c_k \rangle \in \mathbb{N}^{k}}^\text{loop counters} ),
 \end{equation} 
@@ -502,17 +502,17 @@ Feedback & $(e,\langle c_1,\dots,c_k\rangle)$ & $(e,\langle c_1,\dots,c_k+1 \ran
 \end{tabular} 
 Naiad uses a simple, stop-the-world approach in fault tolerance. Vertexes have to implement a checkpoint and a restore interface, and the system invokes these as appropriate to produce a consistent checkpoint across all workers. According to required durability of state backup, vertices can either log data as computation proceeds and thus execute checkpointing with lower latency, or make full checkpoints if required.
 
-The system periodically requests vertices for checkpointing their state. Chackpointing of the computational system is done synchronously,  all vertices flushes their output buffers and do the computations on input than pauses work. After carrying out required level of checkpointing, the system resumes message delivery and computations. Checkpoint files can be saved to disk or replicated to other machines.
+The system periodically requests vertices for checkpointing their state. Checkpointing of the computational system is done synchronousl. All vertices flushes their output buffers and do the computations on buffered input than pauses work. After carrying out the required level of checkpointing, the system resumes message delivery and computations. Checkpoint files can be saved to disk or replicated to other machines.
 
-If a failure happens the system read latest checkpoint files and  all the vertices revert to last state saved in the checkpoint, and if it is necessary failed processes are being assigned to another node.
+If a failure happens the system read latest checkpoint files, all the vertices revert to their last state saved in the checkpoint, and if it is necessary, failed processes are being assigned to another node.
 
-Designers of Naiad have chosen higher performance in the common case that there are no failures at the expense of availability in the event of failure. To bridge time gaps in processing caused by making checkpoints or failure recovery Naiad uses reliable message queue where it reads input from. 
+Designers of Naiad have chosen higher performance in the common case, in which there are no failures, at the expense of availability in the event of failure. To bridge time gaps in processing caused by making checkpoints or failure recovery, Naiad uses reliable message queues, from where it can read input . 
 
-\section{Iterative Fault-tolerance in Flink}
+\section{Iterative Fault-tolerance in Flink}\label{iftf}
 \subsection{Iterative dataflows in Flink}
-Iterations and incremental processing are crucial for machine learning applications as well as for implementation of different graph processing algorithms. Iterations in Flink are implemented using \textit{iterative steps}, special operators that themselves can contain an execution graph. Flink makes difference on API level between two variant of iteration operator: simple textit{Iterate} and textit{Delta Iterate}.
+Iterations and incremental processing are crucial for machine learning applications, as well as in implementation of different graph processing algorithms. Iterations in Flink are implemented using \textit{iterative steps}, special operators that themselves can contain an execution graph. Flink makes difference on API level between two variant of iteration operator: simple textit{Iterate} and textit{Delta Iterate}.
 
-The \textbf{iterate operator} implements a simple form of iterations, the step function consumes the entire result set of its upstream operator or the previous iteration then executes the iteration step and produces a the new partial solution. Step function is executed multiple times until a termination condition is met, that can be either a given maximum number of iterations (in case of batch processing) or a \textit{convergence criteria}, which should be satisfied by a textit{custom aggregator}.
+The \textbf{iterate operator} implements a simple form of iterations, the step function consumes the entire result set of its upstream operator or the previous iteration, then executes the iteration step and produces a the new partial solution. Step function is executed multiple times until a termination condition is met. Termination condition can be either a given maximum number of iterations (in case of batch processing) or a \textit{convergence criteria}, which should be satisfied by a textit{custom aggregator}.
 \begin{figure}[!ht]
   \centering    
       \includegraphics[width=0.5\textwidth]{figures/iterations_iterate_operator.png}
@@ -520,31 +520,28 @@ The \textbf{iterate operator} implements a simple form of iterations, the step f
   \label{fig:iterations_iterate_operator}
 \end{figure}
 
-\textbf{Delta iterate operator} covers the case of incremental computation. Incremental iterations selectively modify some elements of their solution set evolving the solution rather than fully recompute that. If this type of methods are applicable they lead to more efficient solutions, it splits the solution set into \textit{cold parts} and \textit{hot parts} and involve only hot parts into the next iteration steps. The majority of the solution set in many cases cools down quickly and thus fastens up the global execution significantly.
+\textbf{Delta iterate operator} covers the case of incremental computation. Incremental iterations selectively modify some elements of their solution set, evolving the solution, rather than fully recompute that. If this type of methods are applicable, they lead to more efficient solutions.A delta iterate operator splits the solution set into \textit{cold parts} and \textit{hot parts} and involves only hot parts into the next iteration steps. The majority of the solution set in many cases cools down quickly and thus fastens up the global execution significantly.
 \begin{figure}[!ht]
   \centering    
       \includegraphics[width=0.5\textwidth]{figures/iterations_delta_iterate_operator.png}
   \caption{Delta iterate operator in Flink\cite{flink_doc_iteration}}
   \label{fig:iterations_iterate_operator}
 \end{figure}
-In parallel setups the step functions of multiple task instances are evaluated in parallel on different partitions of iteration state. One such parallel evaluation of on all the task instances forms a textit{superstep}, which is the granularity of synchronization, therefore all iteration task have need to be complete before initialization of the next superstep. Termination criteria is also evaluated at the barriers between supersteps.	
+In parallel setups the step functions of multiple task instances are evaluated in parallel, on different partitions of iteration state. One such parallel evaluation on all parallel task instances forms a textit{superstep}, which is the granularity of synchronization, therefore all iteration task have need to be complete before initialization of the next superstep. Termination criteria is also evaluated at the barriers between supersteps.	
 \cite{flink_doc_iteration}
 
-Iterative stream programs implement the \textit{step function} and embed it in a \textit{iterative stream}. We call \textit{iteration head} the entry point of the cycle and \textit{iteration tail} the exit point, where records not necessary anymore leave the loop.
+Iterative stream programs implement the \textit{step function} with embedding it in an \textit{iterative stream}. We call \textit{iteration head} the entry point of the cycle and \textit{iteration tail} the exit point, where records that are not necessary anymore leave the loop.
 
-In an iterative datastream program there is no maximum number for iterations, instead users have to specify at \textit{iteration tail}, which part of the stream should be fed back to the iteration head and wich part can be forwarded to downstreams.To define which part should be fed back users can use a \textit{split} transformation or a \textit{filter}.
-
-
-
+In an iterative datastream program there is no maximum number for iterations, instead users have to specify at \textit{iteration tail},that which part of the stream should be fed back to the iteration head, and which part can be forwarded to downstreams.To define which part should be resent along the cycle,  users can use a \textit{split} transformation or a \textit{filter}.
 
 \subsection{Asynchronous Barrier Snapshotting for cyclic dataflows}
 Apache Flink uses Asynchronous Barrier Snapshotting what is based on the principle, that it is feasible to do snapshots without persisting channels' state, if we divide the execution into stages. 
-It is possible to divide data streams into stages by injecting textit{barrier markers} a kind of control messages periodically, that are pushed throughout the whole execution graph to the sinks. Global snapshot of the systems are taken incrementally building on stages indicated by barrier markers. There are a couple of assumptions need to be met for ASB algorithms:
+It is possible to divide data streams into stages by injecting textit{barrier markers}, a kind of control messages periodically, that are pushed throughout the whole execution graph to the sinks. Global snapshot of the systems are taken incrementally, building on stages indicated by barrier markers. There are a couple of assumptions need to be met for ASB algorithms:
 \begin{itemize}
-\item Network channels need to be quasi-reliable, they have tor keep a FIFO delivery order, and can be blocked and unblocked. When a channel is blocked it has to be able to buffer all messages until it gets unblocked.
+\item Network channels need to be quasi-reliable, they have to keep a FIFO delivery order, and can be blocked and unblocked. When a channel is blocked it has to be able to buffer all messages until it gets unblocked.
 \item Tasks need to be enabled to order the channels to block, unblock and forward messages. They also has to be able to broadcast messages.
 \end{itemize}
-To execute a global snapshot a central coordinator injects the barrier to all the sources of execution graphs. When the source recieves the marker it takes  a snapshot of its current state, then forwards the barrier on all its downstreams.  When a non-source task receives a barrier on one of the input streams it blocks the stream and wait until the barrier is delivered on all the upstreams. When the task has received the barrier from all the upstream channel it executes the snapshot of its current state, broadcasts the barrier on all its downstream channels, and finally unblocks upstream channel and continues the computations.
+To execute a global snapshot a central coordinator injects the barrier to all the sources of execution graphs. When the source recieves the marker, it takes  a snapshot of its current state, then forwards the barrier on all its downstreams.  When a non-source task receives a barrier on one of the input streams it blocks the stream and wait until the barrier is delivered on all incoming channels. When the task has received the barrier from all upstream channels, it executes the snapshot of its current state, broadcasts the barrier on all its downstream channels. After that the task finally unblocks upstream channel and continues the computations.
 \begin{figure}[!ht]
   \centering    
       \includegraphics[width=0.9\textwidth]{figures/abs_acyclic.png}
@@ -553,13 +550,13 @@ To execute a global snapshot a central coordinator injects the barrier to all th
 \end{figure}
 A snapshotting algorithms must guarantee \textit{termination} and \textit{feasibility}.(See subsection \ref{snapshotting})
 \begin{description}
-\item[Termination] is guaranteed by the DAG topology of acylic computation graph and reliability of the channels. Reliability ensures the if a barrier has been sent it will be eventually received as long as the receiver task is alive. The DAG topology furthermore guarantees that all tasks will receive the barrier on all the input channels.
-\item[Feasibility] of the algorithms can be proved by showing, that a global snapshot contains only history of records that are processed up to the last stage. This is ensured by FIFO delivery and blocking of input channels ensuring that no post-shot record will be reflected in the state. 
+\item[Termination] is guaranteed by the DAG topology of acylic computation graph, and reliability of the channels. Reliability ensures, that if a barrier has been sent, it will be eventually received, as long as the receiver task is alive. The DAG topology furthermore guarantees that all tasks will receive the barrier on all the input channels.
+\item[Feasibility] of the algorithms can be proved by showing, that a global snapshot contains only history of records that are processed up to the last stage. This is ensured by FIFO delivery and by blocking input channels that ensdures that no post-shot record will be reflected in the state. 
 \end{description}
 \cite{abs}
-In the presence of cycles in the execution graph ABS algorithm presented above will violate the requirement of \textit{termination}, since a task in a circle would wait indefinitely to receive the barriers on all of the input channels, resulting in deadlock. Moreover the records that are in transit within cycles would not be included in the snapshot contradicting the property of \textit{feasibility}. This second issue leads to the need to consistently include records in the circle in the snapshot to reach feasibility as well as restore them at recovery.
-To address the problem of deadlocks we need to identify the set textit{back-edges} $L$  in the execution graph by static analysis. $L$ includes edges of the graph which has been already visited during \textit{depth-first search}. Without the $l_{bi} \in L$ back-edges $G(T, E\\L)$ execution graph is a DAG. that contains all tasks of in topology, on this part the former algorithm will work invariably. To deal with problem of records in transit there is a need to apply downstream backup logging the records received on back-edges during the snapshot, i.e. from the moment it forwards the barrier until it receives back on the back-edge.      
-In the modified ABS algorithm  tasks with back-edge input creates a local copy of their state once they received the barrier from all their upstreams $(e \notin L)$ channels, then it broadcasts the barrier on all the downstreams, including the channels that are part of a circle. From that they log all records delivered from the back-edges until receives back the stage barrier too from them, incuding this way all pre-shot records in the current snapshot.  
+In the presence of cycles in the execution graph the ABS algorithm presented above will violate the requirement of \textit{termination}, since a task in a circle would wait indefinitely to receive the barriers on all input channels, resulting in deadlock. Moreover the records that are in transit within cycles would not be included in the snapshot contradicting the property of \textit{feasibility}. This second issue leads to the need to consistently include records in the circle in the snapshot to reach feasibility, as well as to restore them at recovery.
+To address the problem of deadlocks we need to identify the set textit{back-edges} $L$  in the execution graph. This can be carried out by static analysis. $L$ includes edges of the graph which has been already visited during \textit{depth-first search}. Without the $l_{bi} \in L$ back-edges $G(T, E\\L)$ execution graph is a DAG, that contains all tasks of the topology. On this partial graph the formerly described algorithm will work invariably. To deal with the problem of records in transit there is a need to apply downstream backup logging the records that has been received on back-edges during the snapshot, i.e. from the moment it forwards the barrier to the cycle,  until it receives back on the back-edge.      
+In the modified ABS algorithm  tasks with back-edge input create local copies of their state once they received the barrier from all their upstreams $(e \notin L)$ channels, then they broadcast the barrier on all the downstreams, including the channels that are part of a circle. From that point they log all records delivered from the back-edges until receives back the stage barrier too from them, incuding this way all pre-shot records in the current snapshot.  
 \begin{figure}[!ht]
   \centering    
       \includegraphics[width=0.9\textwidth]{figures/abs_cyclic.png}
@@ -569,16 +566,16 @@ In the modified ABS algorithm  tasks with back-edge input creates a local copy o
 Again, to prove correctness of the algorithms we need to examine \textit{termination} and \textit{feasibility}:
 \begin{description}
 
-\item[Termination] of this modified is guaranteed. The problem of potential deadlocks is solved by forwarding barrier as soon as all the regular (non back-edge) channels delivered it. As the modified algorithm works as the unmodified one regarding the DAG partial graph (not considering additional logging), all tasks will eventually receive the barrier.
-\item[Feasibility] may be proved in two steps. First local snapshots included in the global snapshot only contains state of task taken before any post-shot events received from regular upstreams. And second the downstream backup log included in the snapshot contains all records received on back-edges after the snapshot but before receiving back the barrier from back-edge.
+\item[Termination] of this modified algorithm is guaranteed. The problem of potential deadlocks is solved by forwarding barrier as soon as all regular (non back-edge) channels delivered it. Since the modified algorithm works the same way as the unmodified one regarding the DAG partial graph (not considering additional logging), all tasks will eventually receive the barrier.
+\item[Feasibility] may be proved in two steps. First local snapshots included in the global snapshot only contains state of the task, taht have been taken before any post-shot events received from regular upstreams. And second, the downstream backup log included in the snapshot contains all records received on back-edges after the snapshot, but before receiving back the barrier from the back-edge.
 \end{description} 
 \cite{abs}
 
-A possible implementation of executing asynchronous barrier snapshotting with guarantees for iterative datastream jobs can be achieved by adding the following algorithm to the basic ABS:
+A possible implementation of executing asynchronous barrier snapshotting with \textit{exactly once processing guarantees} on iterative datastream jobs can be achieved by adding the following algorithm to the basic ABS:
 \begin{itemize}
-\item When an \textit{iteration head} receives a barrier from the runtime it goes into \textit{logging mode}. Logging mode in our case means that form this moment all records received back along back-edges will be buffered in head's state and won't be forwarded further until iteration head goes back to normal mode.
+\item When an \textit{iteration head} receives a barrier from the runtime it goes into \textit{logging mode}. Logging mode in our case means that from this moment all records received back along back-edges will be buffered in head's state and won't be forwarded further, until iteration head goes back to normal mode.
 Paralelly after receiving the barrier \textit{iteration head} forwards that to all its downstream nodes downstream on the cycle incuding.
-\item Eventually, when \textit{head} receives back the barrier along the back-edge it checkpoints its state as the log of returned records, flushes them towards the downstreams, and restes the log. when all that was done it goes back to normal forwarding mode. 
+\item Eventually, when \textit{head} receives back the barrier along the back-edge it checkpoints its state as the log of returned records, flushes them towards the downstreams, and resets the log. When all that was done it goes back to normal forwarding mode. 
 
 \end{itemize}
 
@@ -590,7 +587,7 @@ Paralelly after receiving the barrier \textit{iteration head} forwards that to a
 %%\subsection{Exactly once}
 %%TODO
 
-\section{Performance}
+\section{Performance}\label{performance}
 In stream processing systems the essential aim is to answer queries with latency as low as possible. It is a very important aspect to measure the time overhead caused by  additional processes, i.e. those which are necessary to carry out snapshotting. In order to evaluate this overhead, I developed an implementation of linear regression using the gradient descent
 algorithm.
 
@@ -659,7 +656,7 @@ val new_parameter = new Params(delta_0, delta_1)
 The displacement vectors issued by \verb:SubUpdate: are collected and summed up in every second, then the sum is applied to parameters of the line. 
 The \verb:SubUpdate: task, which implements a \verb|MapFunction| functional interface, works analogously to usual MapReduce map functions. A \verb|MapFunction| assigns an output element to each input record -- theoretically without the need for maintaining internal state information, therefore it can be parallelized across a set of nodes, and in the case of partitioned streams it does not make any difference where incoming records are processed physically.
 
-Nevertheless, the \verb:SubUpdate: function used in the algorithms uses a $(\Theta_0,\Theta_1)$ pair of parameters to compute the vectors describing in which directions the line should move. These parameters (wrapped in a \verb|Params| class data structure) need to be constantly updated. This update will happen in the subsequent \verb|Update| task. {\bf  After updating the parameters arrive back along the same circle of streams as point-data, and the containing \verb|param| variable takes always the newest returning value.}
+Nevertheless, the \verb:SubUpdate: function used in the algorithms uses a $(\Theta_0,\Theta_1)$ pair of parameters to compute the vectors describing in which directions the line should move. These parameters (wrapped in a \verb|Params| class data structure) need to be constantly updated. This update will happen in the subsequent \verb|Update| task. After the parameters has been updated, it arrives back along the same circle of streams, from where point data comes. When an updated parameter object is received, the \verb|param|local variable takes its value, and \verb|Update| continues computing displacements using the new parameter.
 
 The \verb|parameter| variable in the possibly parallel \verb:SubUpdate: task stores eventually the result of all previous computations, and this makes this task vulnarable against failures: in the case of a failure of all nodes running \verb:SubUpdate:, the computation must be restared from scratch. Therefore, it is an obvious decision to choose \verb:SubUpdate: as a task where snaphots should be taken.  
 
@@ -677,19 +674,23 @@ class SubUpdate
                          collector: Collector[(Params, Int)]): Unit = {
       in match {
         case Left(data) => { // if it receives actual points
-          val delta_0 = - 0.1 * (data.y - (parameter.theta0 + (parameter.theta1 * data.x)) )   
-          val delta_1 = - 0.1 * data.x * (data.y- ( (parameter.theta1 * data.x)+parameter.theta0 ) )
+          val delta_0 = - 0.1 * 
+          (data.y - (parameter.theta0 + (parameter.theta1 * data.x)) )   
+          val delta_1 = - 0.1 *
+          data.x * (data.y- ( (parameter.theta1 * data.x)+parameter.theta0 ) )
           val parameter1 = new Params(delta_0, delta_1)
           collector.collect(parameter1, count)
 
         }
         case Right(param) => {
-          parameter = new Params(( parameter.theta0-learningrate*param.theta0 ),(parameter.theta1- learningrate*param.theta1 ))
+          parameter = new Params(
+          ( parameter.theta0 - learningrate*param.theta0 ),
+          ( parameter.theta1 - learningrate*param.theta1 ))
         }
       }
     }
 
-    override def snapshotState(checkpointId: Long, checkpointTimestamp: Long): Params = parameter
+    override def snapshotState(checkpointId: Long, checkpointTimestamp: Long): 				Params = parameter
 
     override def restoreState(state: Params): Unit = parameter = state
 
@@ -788,7 +789,7 @@ When a failure happens, the original ABS restores the state of the checkointed o
 
 Usually exactly-once-processing guarantees are not required when we want to execute algorithms whose purpose is to reach convergence. Loosing some records can slow down the termination of these algorithms -- or in other cases it can even speed them up. 
 
-Nevertheless the test cases have proven that in some cases, as in this particular task, it is possible  to bias the computation to the extent that recovering takes more time than elapsed since the beginning of computations. {\bf In cases of repeating failures it is possible as well that}  This can be observed in Figure \ref{fig:failures} on the right side, where the processes terminated with timeout. Timeout in our case was set to 90 seconds.  
+Nevertheless the test cases have proven that in some cases, as in this particular task, it is possible  to bias the computation to the extent that recovering takes more time than elapsed since the beginning of computations. In cases of repeating failures it is possible as well that the computation will not terminate in reasonable time, or will not terminate at all.  This can be observed in Figure \ref{fig:failures} on the right side, where the processes terminated with timeout. Timeout in our case was set to 90 seconds.  
 
 On the other hand, adding logging of records which are in transition along the streams, ABS can highly speed up the termination even in the case of continuous failures, with relatively small additional latency. 
 
